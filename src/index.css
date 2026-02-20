@@ -1,0 +1,21 @@
+@import "tailwindcss";
+@import "@fontsource/assistant/400.css";
+@import "@fontsource/assistant/600.css";
+@import "@fontsource/assistant/700.css";
+
+@theme {
+  --font-sans: "Assistant", ui-sans-serif, system-ui, sans-serif;
+  --color-apro-green: #a4d65f;
+  --color-apro-navy: #142031;
+}
+
+@layer base {
+  html {
+    direction: rtl;
+    font-family: var(--font-sans);
+  }
+  
+  body {
+    @apply bg-[#f8f9fa] text-apro-navy;
+  }
+}
