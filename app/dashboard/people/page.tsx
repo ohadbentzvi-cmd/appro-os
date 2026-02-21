@@ -4,7 +4,6 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { Users, ChevronLeft, Loader2, AlertCircle, Search, X, ArrowUpDown, ArrowUp, ArrowDown, Check } from 'lucide-react';
 import { motion } from 'motion/react';
 import { useRouter } from 'next/navigation';
-import { supabase } from '@/lib/supabase/client';
 import { Person } from '@/lib/supabase/types';
 import CreatePersonModal from '@/app/components/CreatePersonModal';
 
@@ -16,18 +15,13 @@ type SortField = 'full_name' | 'email';
 type SortOrder = 'asc' | 'desc';
 
 export default function PeopleList() {
-    const [people, setPeople] = useState<PersonWithActiveRolesCount[]>([]);
+    const [people, setPeople] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [searchTerm, setSearchTerm] = useState('');
-
-    // Sorting state
-    const [sortField, setSortField] = useState<SortField>('full_name');
-    const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
-
-    // Pagination state
-    const [currentPage, setCurrentPage] = useState(1);
-    const pageSize = 25;
+    const [cursor, setCursor] = useState<string | null>(null);
+    const [hasMore, setHasMore] = useState(false);
+    const [isFetchingMore, setIsFetchingMore] = useState(false);
 
     const router = useRouter();
 
@@ -35,94 +29,52 @@ export default function PeopleList() {
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
     const [showSuccessToast, setShowSuccessToast] = useState(false);
 
-    const fetchPeople = async () => {
+    const fetchPeople = async (isLoadMore = false, overrideSearch = searchTerm) => {
         try {
-            setLoading(true);
-            // Fetch people and their unit roles to calculate active roles count
-            const { data, error } = await supabase
-                .from('people')
-                .select('*, unit_roles(id, effective_to)');
+            if (isLoadMore) setIsFetchingMore(true);
+            else setLoading(true);
 
-            if (error) throw error;
+            let url = '/api/v1/people?';
+            const params = new URLSearchParams();
+            if (isLoadMore && cursor) params.append('cursor', cursor);
+            if (overrideSearch.trim()) params.append('search', overrideSearch.trim());
+            url += params.toString();
 
-            // Process the data to include active_roles_count
-            const processedData: PersonWithActiveRolesCount[] = (data || []).map((person: any) => {
-                const activeRoles = person.unit_roles ? person.unit_roles.filter((role: any) => role.effective_to === null).length : 0;
-                return {
-                    id: person.id,
-                    full_name: person.full_name,
-                    phone: person.phone,
-                    email: person.email,
-                    created_at: person.created_at,
-                    active_roles_count: activeRoles
-                };
-            });
+            const res = await fetch(url);
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            const { data, error, meta } = await res.json();
+            if (error) throw new Error(error);
 
-            setPeople(processedData);
+            if (isLoadMore) {
+                setPeople((prev) => [...prev, ...(data || [])]);
+            } else {
+                setPeople(data || []);
+            }
+
+            setHasMore(meta?.hasMore || false);
+            setCursor(meta?.nextCursor || null);
         } catch (err: any) {
             console.error('Error fetching people:', err);
-            setError(err.message);
+            setError('אירעה שגיאה בטעינת הנתונים');
         } finally {
             setLoading(false);
+            setIsFetchingMore(false);
         }
     };
 
+    // Debounced search effect
     useEffect(() => {
-        fetchPeople();
-    }, []);
+        const timer = setTimeout(() => {
+            fetchPeople(false, searchTerm);
+        }, 300);
+        return () => clearTimeout(timer);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [searchTerm]);
 
-    // Derived state for filtering and sorting
-    const filteredAndSortedPeople = useMemo(() => {
-        // Filter
-        let result = people;
-        if (searchTerm.trim() !== '') {
-            const lowerterm = searchTerm.toLowerCase();
-            result = result.filter(p =>
-                (p.full_name && p.full_name.toLowerCase().includes(lowerterm)) ||
-                (p.email && p.email.toLowerCase().includes(lowerterm)) ||
-                (p.phone && p.phone.toLowerCase().includes(lowerterm))
-            );
+    const handleLoadMore = () => {
+        if (hasMore && !isFetchingMore) {
+            fetchPeople(true);
         }
-
-        // Sort
-        result.sort((a, b) => {
-            const aVal = (a[sortField] || '').toLowerCase();
-            const bVal = (b[sortField] || '').toLowerCase();
-
-            if (aVal < bVal) return sortOrder === 'asc' ? -1 : 1;
-            if (aVal > bVal) return sortOrder === 'asc' ? 1 : -1;
-            return 0;
-        });
-
-        return result;
-    }, [people, searchTerm, sortField, sortOrder]);
-
-    const handleSort = (field: SortField) => {
-        if (sortField === field) {
-            setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
-        } else {
-            setSortField(field);
-            setSortOrder('asc');
-        }
-    };
-
-    // Pagination
-    const totalItems = filteredAndSortedPeople.length;
-    const totalPages = Math.ceil(totalItems / pageSize) || 1;
-
-    // Ensure current page is valid after filtering
-    useEffect(() => {
-        if (currentPage > totalPages) {
-            setCurrentPage(1);
-        }
-    }, [totalPages, currentPage]);
-
-    const startIndex = (currentPage - 1) * pageSize;
-    const paginatedPeople = filteredAndSortedPeople.slice(startIndex, startIndex + pageSize);
-
-    const renderSortIcon = (field: SortField) => {
-        if (sortField !== field) return <ArrowUpDown className="w-4 h-4 text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity" />;
-        return sortOrder === 'asc' ? <ArrowUp className="w-4 h-4 text-apro-navy" /> : <ArrowDown className="w-4 h-4 text-apro-navy" />;
     };
 
     return (
@@ -183,7 +135,7 @@ export default function PeopleList() {
                         <Users className="w-16 h-16 text-gray-200 mx-auto mb-4" />
                         <h3 className="text-lg font-bold text-gray-400">לא נמצאו אנשים במערכת</h3>
                     </div>
-                ) : filteredAndSortedPeople.length === 0 ? (
+                ) : people.length === 0 ? (
                     <div className="p-20 text-center">
                         <Users className="w-16 h-16 text-gray-200 mx-auto mb-4" />
                         <h3 className="text-lg font-bold text-gray-400">לא נמצאו תוצאות עבור "{searchTerm}"</h3>
@@ -194,31 +146,15 @@ export default function PeopleList() {
                             <table className="w-full text-right border-collapse">
                                 <thead>
                                     <tr className="bg-gray-50/50 text-gray-500 text-sm uppercase tracking-wider">
-                                        <th
-                                            className="px-6 py-4 font-semibold cursor-pointer group hover:text-apro-navy transition-colors w-1/4"
-                                            onClick={() => handleSort('full_name')}
-                                        >
-                                            <div className="flex items-center gap-2">
-                                                שם מלא
-                                                {renderSortIcon('full_name')}
-                                            </div>
-                                        </th>
-                                        <th
-                                            className="px-6 py-4 font-semibold cursor-pointer group hover:text-apro-navy transition-colors w-1/4"
-                                            onClick={() => handleSort('email')}
-                                        >
-                                            <div className="flex items-center gap-2">
-                                                אימייל
-                                                {renderSortIcon('email')}
-                                            </div>
-                                        </th>
+                                        <th className="px-6 py-4 font-semibold w-1/4">שם מלא</th>
+                                        <th className="px-6 py-4 font-semibold w-1/4">אימייל</th>
                                         <th className="px-6 py-4 font-semibold w-1/6">טלפון</th>
                                         <th className="px-6 py-4 font-semibold w-1/6">תפקידים פעילים</th>
                                         <th className="px-6 py-4 font-semibold">פעולות</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-gray-100">
-                                    {paginatedPeople.map((person, index) => (
+                                    {people.map((person, index) => (
                                         <motion.tr
                                             key={person.id}
                                             initial={{ opacity: 0, x: -10 }}
@@ -228,7 +164,7 @@ export default function PeopleList() {
                                             onClick={() => router.push(`/dashboard/people/${person.id}`)}
                                         >
                                             <td className="px-6 py-5">
-                                                <div className="font-bold text-apro-navy">{person.full_name}</div>
+                                                <div className="font-bold text-apro-navy">{person.fullName}</div>
                                             </td>
                                             <td className="px-6 py-5 text-gray-600 truncate">
                                                 {person.email || '—'}
@@ -237,9 +173,9 @@ export default function PeopleList() {
                                                 {person.phone || '—'}
                                             </td>
                                             <td className="px-6 py-5">
-                                                {person.active_roles_count > 0 ? (
+                                                {person.activeRolesCount > 0 ? (
                                                     <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-apro-green/10 text-apro-green">
-                                                        {person.active_roles_count} תפקידים
+                                                        {person.activeRolesCount} תפקידים
                                                     </span>
                                                 ) : (
                                                     <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-500">
@@ -265,28 +201,19 @@ export default function PeopleList() {
                             </table>
                         </div>
 
-                        {/* Pagination Footer */}
-                        <div className="px-6 py-4 border-t border-gray-100 bg-gray-50/50 flex items-center justify-between">
-                            <div className="text-sm text-gray-500 font-medium">
-                                מציג {totalItems === 0 ? 0 : startIndex + 1}–{Math.min(startIndex + pageSize, totalItems)} מתוך {totalItems} אנשים
-                            </div>
-                            <div className="flex gap-2">
+                        {/* Load More Footer */}
+                        {hasMore && (
+                            <div className="px-6 py-4 border-t border-gray-100 bg-gray-50/50 flex justify-center">
                                 <button
-                                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                                    disabled={currentPage === 1}
-                                    className="px-4 py-2 text-sm font-medium border border-gray-200 rounded-lg bg-white disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 hover:text-apro-navy transition-colors"
+                                    onClick={handleLoadMore}
+                                    disabled={isFetchingMore}
+                                    className="px-6 py-2.5 text-sm font-bold border border-gray-200 rounded-xl bg-white disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 hover:text-apro-navy transition-colors flex items-center gap-2 shadow-sm"
                                 >
-                                    הקודם
-                                </button>
-                                <button
-                                    onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                                    disabled={currentPage === totalPages || totalPages === 0}
-                                    className="px-4 py-2 text-sm font-medium border border-gray-200 rounded-lg bg-white disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 hover:text-apro-navy transition-colors"
-                                >
-                                    הבא
+                                    {isFetchingMore && <Loader2 className="w-4 h-4 animate-spin text-apro-green" />}
+                                    טען עוד
                                 </button>
                             </div>
-                        </div>
+                        )}
                     </>
                 )}
             </div>

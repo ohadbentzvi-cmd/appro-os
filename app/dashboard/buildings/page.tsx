@@ -4,11 +4,9 @@ import React from 'react';
 import { Building2, ChevronLeft, Loader2, AlertCircle } from 'lucide-react';
 import { motion } from 'motion/react';
 import { useRouter } from 'next/navigation';
-import { supabase } from '@/lib/supabase/client';
-import { Building } from '@/lib/supabase/types';
 
 export default function BuildingsList() {
-    const [buildings, setBuildings] = React.useState<Building[]>([]);
+    const [buildings, setBuildings] = React.useState<any[]>([]);
     const [loading, setLoading] = React.useState(true);
     const [error, setError] = React.useState<string | null>(null);
     const router = useRouter();
@@ -17,16 +15,15 @@ export default function BuildingsList() {
         async function fetchBuildings() {
             try {
                 setLoading(true);
-                const { data, error } = await supabase
-                    .from('buildings')
-                    .select('*')
-                    .order('created_at', { ascending: false });
-
-                if (error) throw error;
+                setError(null);
+                const res = await fetch('/api/v1/buildings');
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                const { data, error } = await res.json();
+                if (error) throw new Error(error);
                 setBuildings(data || []);
             } catch (err: any) {
                 console.error('Error fetching buildings:', err);
-                setError(err.message);
+                setError('אירעה שגיאה בטעינת הנתונים. נסה לרענן את הדף.');
             } finally {
                 setLoading(false);
             }
@@ -63,9 +60,12 @@ export default function BuildingsList() {
                         <div className="max-w-md">
                             <h3 className="text-lg font-bold text-red-900 mb-1">שגיאה בטעינת הנתונים</h3>
                             <p className="text-red-700 text-sm mb-4">{error}</p>
-                            <p className="text-gray-500 text-sm">
-                                אנא וודא שהגדרת את פרטי ה-Supabase שלך ב-Secrets ושיצרת את הטבלה המתאימה.
-                            </p>
+                            <button
+                                onClick={() => router.refresh()}
+                                className="text-apro-green font-medium hover:underline"
+                            >
+                                רענן
+                            </button>
                         </div>
                     </div>
                 ) : buildings.length === 0 ? (
@@ -98,18 +98,18 @@ export default function BuildingsList() {
                                     >
                                         <td className="px-6 py-5">
                                             <div className="font-bold text-apro-navy">{building.name}</div>
-                                            {building.built_year && (
-                                                <div className="text-xs text-gray-400">שנת הקמה: {building.built_year}</div>
+                                            {building.builtYear && (
+                                                <div className="text-xs text-gray-400">שנת הקמה: {building.builtYear}</div>
                                             )}
                                         </td>
                                         <td className="px-6 py-5 text-gray-600">
-                                            {building.address_street}, {building.address_city}
+                                            {building.addressStreet}, {building.addressCity}
                                         </td>
                                         <td className="px-6 py-5 text-center font-medium text-apro-navy">
-                                            {building.num_floors}
+                                            {building.numFloors}
                                         </td>
                                         <td className="px-6 py-5 text-center font-medium text-apro-navy">
-                                            {building.num_units}
+                                            {building.unitCount ?? building.numUnits}
                                         </td>
                                         <td className="px-6 py-5 text-left">
                                             <button

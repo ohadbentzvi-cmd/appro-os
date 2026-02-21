@@ -4,7 +4,6 @@ import React, { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { Building2, ChevronRight, Home, Users, MapPin, Hash, Plus, Check, FileText, ChevronLeft, Loader2, AlertCircle, Pencil } from 'lucide-react';
-import { supabase } from '@/lib/supabase/client';
 import { Building, Unit, Person, UnitRole } from '@/lib/supabase/types';
 import AssignPersonModal from '@/app/components/AssignPersonModal';
 import EditRoleModal from '@/app/components/EditRoleModal';
@@ -57,49 +56,45 @@ export default function UnitDetail() {
                 setLoading(true);
                 setError(null);
 
-                // 1. Unit info
-                const { data: uData, error: uError } = await supabase
-                    .from('units')
-                    .select('*, buildings(name)')
-                    .eq('id', unitId)
-                    .single();
+                const [bRes, uRes] = await Promise.all([
+                    fetch(`/api/v1/buildings/${id}`),
+                    fetch(`/api/v1/buildings/${id}/units/${unitId}`)
+                ]);
 
-                if (uError) {
-                    if (uError.code === 'PGRST116') {
-                        throw new Error('UNIT_NOT_FOUND');
-                    }
-                    throw uError;
+                if (!bRes.ok || !uRes.ok) {
+                    if (uRes.status === 404) throw new Error('UNIT_NOT_FOUND');
+                    throw new Error('HTTP_ERROR');
                 }
 
-                setUnit(uData);
-                if (uData.buildings && !Array.isArray(uData.buildings)) {
-                    setBuildingName(uData.buildings.name || 'בניין');
-                }
+                const bData = await bRes.json();
+                const uData = await uRes.json();
 
-                // 2. Active roles
-                const { data: activeData, error: activeError } = await supabase
-                    .from('unit_roles')
-                    .select('*, people(full_name)')
-                    .eq('unit_id', unitId)
-                    .is('effective_to', null);
+                if (bData.error) throw new Error(bData.error);
+                if (uData.error) throw new Error(uData.error);
 
-                if (activeError) throw activeError;
-                setActiveRoles(activeData || []);
+                setBuildingName(bData.data.name || 'בניין');
+                setUnit(uData.data);
 
-                // 3. Historical roles
-                const { data: historyData, error: historyError } = await supabase
-                    .from('unit_roles')
-                    .select('*, people(full_name)')
-                    .eq('unit_id', unitId)
-                    .not('effective_to', 'is', null)
-                    .order('effective_to', { ascending: false });
+                const allRoles = uData.data.roles || [];
+                const active = allRoles.filter((r: any) => r.effectiveTo === null);
+                const history = allRoles.filter((r: any) => r.effectiveTo !== null);
 
-                if (historyError) throw historyError;
-                setHistoryRoles(historyData || []);
+                // Map roles to match internal state structure
+                const mapRole = (r: any) => ({
+                    ...r,
+                    role_type: r.roleType,
+                    is_fee_payer: r.isFeePayer,
+                    effective_from: r.effectiveFrom,
+                    effective_to: r.effectiveTo,
+                    people: r.person ? { full_name: r.person.fullName } : undefined
+                });
+
+                setActiveRoles(active.map(mapRole));
+                setHistoryRoles(history.map(mapRole));
 
             } catch (err: any) {
                 console.error('Error fetching unit detail:', err);
-                setError(err.message === 'UNIT_NOT_FOUND' ? 'היחידה לא נמצאה' : err.message);
+                setError(err.message === 'UNIT_NOT_FOUND' ? 'היחידה לא נמצאה' : 'אירעה שגיאה בטעינת הנתונים');
             } finally {
                 setLoading(false);
             }
@@ -183,12 +178,12 @@ export default function UnitDetail() {
     };
 
     // Extract extra attributes from unit
-    const ignoredKeys = ['id', 'building_id', 'created_at', 'buildings', 'unit_number', 'floor'];
+    const ignoredKeys = ['id', 'buildingId', 'createdAt', 'tenantId', 'unitNumber', 'floor', 'roles'];
     const extraKeys = Object.keys(unit).filter(k => !ignoredKeys.includes(k) && unit[k] !== null);
 
     const keyTranslations: Record<string, string> = {
-        'unit_type': 'סוג יחידה',
-        'area_sqm': 'שטח (מ"ר)'
+        'unitType': 'סוג יחידה',
+        'areaSqm': 'שטח (מ"ר)'
     };
 
     return (
@@ -206,12 +201,12 @@ export default function UnitDetail() {
                     </Link>
                     <ChevronRight className="w-4 h-4 transform rotate-180" />
                     <Link href={`/dashboard/buildings/${id}/units/${unitId}`} className="text-apro-green">
-                        יחידה {unit.unit_number}
+                        יחידה {unit.unitNumber}
                     </Link>
                 </div>
 
                 <h1 className="text-3xl font-bold text-apro-navy tracking-tight mt-2">
-                    יחידה {unit.unit_number} — קומה {unit.floor}
+                    יחידה {unit.unitNumber} — קומה {unit.floor}
                 </h1>
             </div>
 
@@ -222,7 +217,7 @@ export default function UnitDetail() {
                     <div>
                         <label className="block text-sm font-semibold text-gray-500 mb-2">מספר יחידה</label>
                         <div className="w-full bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 text-gray-700 font-bold">
-                            {unit.unit_number}
+                            {unit.unitNumber}
                         </div>
                     </div>
                     <div>
@@ -380,6 +375,7 @@ export default function UnitDetail() {
             <AssignPersonModal
                 isOpen={isAssignModalOpen}
                 onClose={() => setIsAssignModalOpen(false)}
+                buildingId={id as string}
                 unitId={unitId!}
                 onSuccess={handleAssignSuccess}
             />
@@ -387,6 +383,7 @@ export default function UnitDetail() {
             {/* Edit Role Modal */}
             <EditRoleModal
                 isOpen={isEditModalOpen}
+                buildingId={id as string}
                 onClose={() => {
                     setIsEditModalOpen(false);
                     setSelectedRoleForEdit(null);

@@ -4,7 +4,6 @@ import React, { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { ChevronLeft, Loader2, AlertCircle, Building2, ChevronRight, User, Mail, Phone, Check } from 'lucide-react';
-import { supabase } from '@/lib/supabase/client';
 import { Person, UnitRole, Unit, Building } from '@/lib/supabase/types';
 import AssignUnitModal from '@/app/components/AssignUnitModal';
 
@@ -46,41 +45,46 @@ export default function PersonDetail() {
     const fetchPersonDetail = async () => {
         try {
             setLoading(true);
-            const { data, error } = await supabase
-                .from('people')
-                .select(`
-                        id,
-                        full_name,
-                        email,
-                        phone,
-                        created_at,
-                        unit_roles (
-                            id,
-                            role_type,
-                            effective_from,
-                            effective_to,
-                            is_fee_payer,
-                            unit_id,
-                            units (
-                                id,
-                                unit_number,
-                                building_id,
-                                buildings (
-                                    id,
-                                    name,
-                                    address_street,
-                                    address_city
-                                )
-                            )
-                        )
-                    `)
-                .eq('id', id)
-                .single();
+            const res = await fetch(`/api/v1/people/${id}`);
+            if (!res.ok) {
+                if (res.status === 404) throw new Error('האדם לא נמצא');
+                throw new Error(`HTTP ${res.status}`);
+            }
 
-            if (error) throw error;
-            if (!data) throw new Error('האדם לא נמצא');
+            const { data, error: apiError } = await res.json();
+            if (apiError) throw new Error(apiError);
 
-            setPerson(data as unknown as PersonDetailData);
+            // Map the API structure to the UI component's expected structure
+            const mappedRoles = (data.roles || []).map((r: any) => ({
+                id: r.id,
+                role_type: r.roleType,
+                effective_from: r.effectiveFrom,
+                effective_to: r.effectiveTo,
+                is_fee_payer: r.isFeePayer,
+                unit_id: r.unit?.id,
+                units: r.unit ? {
+                    id: r.unit.id,
+                    unit_number: r.unit.unitNumber,
+                    building_id: r.unit.building?.id,
+                    buildings: r.unit.building ? {
+                        id: r.unit.building.id,
+                        name: r.unit.building.name,
+                        address_street: r.unit.building.addressStreet,
+                        address_city: r.unit.building.addressCity
+                    } : null
+                } : null
+            }));
+
+            const mappedData = {
+                id: data.id,
+                full_name: data.fullName,
+                email: data.email,
+                phone: data.phone,
+                created_at: data.createdAt,
+                unit_roles: mappedRoles
+            };
+
+            setPerson(mappedData as unknown as PersonDetailData);
         } catch (err: any) {
             console.error(err);
             setError(err.message || 'שגיאה בטעינת נתוני האדם');

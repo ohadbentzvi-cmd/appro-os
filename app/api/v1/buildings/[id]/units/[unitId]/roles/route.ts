@@ -41,10 +41,26 @@ export async function POST(
                         )
                     )
                 )
-                .limit(1)
 
             if (activeFeePayer.length > 0) {
-                return errorResponse('DUPLICATE_FEE_PAYER', 409)
+                if (!data.replaceFeePayer) {
+                    return errorResponse('DUPLICATE_FEE_PAYER', 409)
+                } else {
+                    // Update all active fee payers for this unit
+                    await db
+                        .update(unitRoles)
+                        .set({ isFeePayer: false })
+                        .where(
+                            and(
+                                eq(unitRoles.unitId, unitId),
+                                eq(unitRoles.isFeePayer, true),
+                                or(
+                                    isNull(unitRoles.effectiveTo),
+                                    gte(unitRoles.effectiveTo, sql`CURRENT_DATE`)
+                                )
+                            )
+                        )
+                }
             }
         }
 

@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { supabase } from '@/lib/supabase/client';
 import { Building, Unit } from '@/lib/supabase/types';
 import { X, Search, Check, AlertCircle, Building2, Home } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
@@ -19,10 +18,10 @@ export default function AssignUnitModal({ isOpen, onClose, personId, personName,
 
     // Step 1 State: Selection
     const [searchTerm, setSearchTerm] = useState('');
-    const [buildings, setBuildings] = useState<Building[]>([]);
-    const [units, setUnits] = useState<Unit[]>([]);
-    const [selectedBuilding, setSelectedBuilding] = useState<Building | null>(null);
-    const [selectedUnit, setSelectedUnit] = useState<Unit | null>(null);
+    const [buildings, setBuildings] = useState<any[]>([]);
+    const [units, setUnits] = useState<any[]>([]);
+    const [selectedBuilding, setSelectedBuilding] = useState<any>(null);
+    const [selectedUnit, setSelectedUnit] = useState<any>(null);
     const [loadingData, setLoadingData] = useState(false);
 
     // Step 2 State: Role details
@@ -62,11 +61,10 @@ export default function AssignUnitModal({ isOpen, onClose, personId, personName,
     const fetchBuildings = async () => {
         setLoadingData(true);
         try {
-            const { data, error } = await supabase
-                .from('buildings')
-                .select('*')
-                .order('name', { ascending: true });
-            if (error) throw error;
+            const res = await fetch('/api/v1/buildings');
+            if (!res.ok) throw new Error('Network error');
+            const { data, error } = await res.json();
+            if (error) throw new Error(error);
             setBuildings(data || []);
         } catch (err) {
             console.error('Error fetching buildings:', err);
@@ -78,12 +76,10 @@ export default function AssignUnitModal({ isOpen, onClose, personId, personName,
     const fetchUnits = async (buildingId: string) => {
         setLoadingData(true);
         try {
-            const { data, error } = await supabase
-                .from('units')
-                .select('*')
-                .eq('building_id', buildingId)
-                .order('unit_number', { ascending: true }); // Depending on your setup
-            if (error) throw error;
+            const res = await fetch(`/api/v1/buildings/${buildingId}/units`);
+            if (!res.ok) throw new Error('Network error');
+            const { data, error } = await res.json();
+            if (error) throw new Error(error);
             setUnits(data || []);
         } catch (err) {
             console.error('Error fetching units:', err);
@@ -108,7 +104,7 @@ export default function AssignUnitModal({ isOpen, onClose, personId, personName,
     };
 
     const handleSubmit = async () => {
-        if (!selectedUnit) return;
+        if (!selectedUnit || !selectedBuilding) return;
         setError(null);
 
         // Validation
@@ -127,45 +123,30 @@ export default function AssignUnitModal({ isOpen, onClose, personId, personName,
 
         setIsSubmitting(true);
         try {
-            // First check if a fee payer already exists if this role is marked as fee payer
-            if (isFeePayer) {
-                const { data: existingFeePayer, error: checkError } = await supabase
-                    .from('unit_roles')
-                    .select('id, people(full_name)')
-                    .eq('unit_id', selectedUnit.id)
-                    .eq('is_fee_payer', true)
-                    .is('effective_to', null)
-                    .single();
+            const res = await fetch(`/api/v1/buildings/${selectedBuilding.id}/units/${selectedUnit.id}/roles`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    personId: personId,
+                    roleType: roleType,
+                    effectiveFrom: effectiveFrom,
+                    isFeePayer: isFeePayer
+                })
+            });
 
-                if (checkError && checkError.code !== 'PGRST116') { // PGRST116 means no rows found, which is fine
-                    throw checkError;
-                }
+            const { error: apiError } = await res.json();
 
-                if (existingFeePayer) {
-                    const personNameStr = existingFeePayer.people ? (existingFeePayer.people as any).full_name : 'אדם אחר';
-                    setError(`כבר קיים משלם דמי ניהול פעיל ליחידה זו (${personNameStr}). לא ניתן להגדיר יותר כרגע.`);
-                    setIsSubmitting(false);
-                    return;
+            if (!res.ok) {
+                if (apiError === 'ANOTHER_FEE_PAYER_EXISTS') {
+                    throw new Error('כבר קיים משלם דמי ניהול פעיל ליחידה זו. לא ניתן להגדיר יותר כרגע.');
                 }
+                throw new Error(apiError || 'Failed to create role');
             }
-
-            const { error: insertError } = await supabase
-                .from('unit_roles')
-                .insert([{
-                    unit_id: selectedUnit.id,
-                    person_id: personId,
-                    role_type: roleType,
-                    effective_from: effectiveFrom,
-                    is_fee_payer: isFeePayer,
-                    tenant_id: '00000000-0000-0000-0000-000000000000'
-                }]);
-
-            if (insertError) throw insertError;
 
             onSuccess();
         } catch (err: any) {
             console.error('Error assigning unit:', err);
-            setError('אירעה שגיאה בשיוך היחידה. אנא נסה שוב.');
+            setError(err.message || 'אירעה שגיאה בשיוך היחידה. אנא נסה שוב.');
         } finally {
             setIsSubmitting(false);
         }
@@ -175,7 +156,7 @@ export default function AssignUnitModal({ isOpen, onClose, personId, personName,
 
     const filteredBuildings = buildings.filter(b =>
         (b.name && b.name.includes(searchTerm)) ||
-        (b.address_street && b.address_street.includes(searchTerm))
+        (b.addressStreet && b.addressStreet.includes(searchTerm))
     );
 
     return (
@@ -249,8 +230,8 @@ export default function AssignUnitModal({ isOpen, onClose, personId, personName,
                                                         <div className="flex items-center gap-3">
                                                             <Building2 className={`w-4 h-4 ${selectedBuilding?.id === building.id ? 'text-apro-green' : 'text-gray-400'}`} />
                                                             <div className="flex flex-col">
-                                                                <span className="font-bold text-sm truncate max-w-[200px]">{building.name || building.address_street}</span>
-                                                                <span className="text-xs text-gray-500 opacity-80">{building.address_city}</span>
+                                                                <span className="font-bold text-sm truncate max-w-[200px]">{building.name || building.addressStreet}</span>
+                                                                <span className="text-xs text-gray-500 opacity-80">{building.addressCity}</span>
                                                             </div>
                                                         </div>
                                                         {selectedBuilding?.id === building.id && <Check className="w-4 h-4" />}
@@ -268,7 +249,7 @@ export default function AssignUnitModal({ isOpen, onClose, personId, personName,
                                         animate={{ opacity: 1, height: 'auto' }}
                                         className="mt-6"
                                     >
-                                        <label className="block text-sm font-bold text-gray-700 mb-2">2. בחירת יחידה בבניין ({selectedBuilding.name || selectedBuilding.address_street})</label>
+                                        <label className="block text-sm font-bold text-gray-700 mb-2">2. בחירת יחידה בבניין ({selectedBuilding.name || selectedBuilding.addressStreet})</label>
                                         <div className="bg-gray-50 border border-gray-200 rounded-xl max-h-48 overflow-y-auto">
                                             {loadingData ? (
                                                 <div className="p-4 text-center text-sm text-gray-500">טוען יחידות...</div>
@@ -286,7 +267,7 @@ export default function AssignUnitModal({ isOpen, onClose, personId, personName,
                                                                 }`}
                                                         >
                                                             <Home className="w-3.5 h-3.5 opacity-70" />
-                                                            {unit.unit_number}
+                                                            {unit.unitNumber}
                                                         </button>
                                                     ))}
                                                 </div>
@@ -308,7 +289,7 @@ export default function AssignUnitModal({ isOpen, onClose, personId, personName,
                                     <div>
                                         <p className="text-xs font-bold text-blue-600 mb-1">יחידה נבחרת</p>
                                         <p className="text-sm font-bold text-apro-navy">
-                                            {selectedBuilding?.name || selectedBuilding?.address_street} - יחידה {selectedUnit?.unit_number}
+                                            {selectedBuilding?.name || selectedBuilding?.addressStreet} - יחידה {selectedUnit?.unitNumber}
                                         </p>
                                     </div>
                                     <button

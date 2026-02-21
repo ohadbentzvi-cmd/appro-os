@@ -1,18 +1,18 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { supabase } from '@/lib/supabase/client';
 import { X, AlertCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
 interface EditRoleModalProps {
     isOpen: boolean;
     onClose: () => void;
+    buildingId: string;
     role: any; // The full unit_role object with joined people
     onSuccess: () => void;
 }
 
-export default function EditRoleModal({ isOpen, onClose, role, onSuccess }: EditRoleModalProps) {
+export default function EditRoleModal({ isOpen, onClose, buildingId, role, onSuccess }: EditRoleModalProps) {
     // Role Details State
     const [roleType, setRoleType] = useState<'owner' | 'tenant' | 'guarantor'>('tenant');
     const [effectiveFrom, setEffectiveFrom] = useState('');
@@ -60,44 +60,36 @@ export default function EditRoleModal({ isOpen, onClose, role, onSuccess }: Edit
 
         setIsSubmitting(true);
         try {
-            // First check if a fee payer already exists on other rows if we are making THIS row the fee payer
-            if (isFeePayer && !role.is_fee_payer) {
-                const { data: existingFeePayer, error: checkError } = await supabase
-                    .from('unit_roles')
-                    .select('id, people(full_name)')
-                    .eq('unit_id', role.unit_id)
-                    .eq('is_fee_payer', true)
-                    .is('effective_to', null)
-                    .single();
+            const isMakingFeePayer = isFeePayer && !role.is_fee_payer;
 
-                if (checkError && checkError.code !== 'PGRST116') { // PGRST116 means no rows found/multiple rows found
-                    throw checkError;
-                }
-
-                if (existingFeePayer && existingFeePayer.id !== role.id) {
-                    const personNameStr = existingFeePayer.people ? (existingFeePayer.people as any).full_name : 'אדם אחר';
-                    setError(`כבר קיים משלם דמי ניהול פעיל ליחידה זו (${personNameStr}). לא ניתן להגדיר יותר מאחד כרגע.`);
-                    setIsSubmitting(false);
-                    return;
-                }
-            }
-
-            // Perform the update
-            const { error: updateError } = await supabase
-                .from('unit_roles')
-                .update({
-                    role_type: roleType,
-                    effective_from: effectiveFrom,
-                    is_fee_payer: isFeePayer
+            // First attempt to update
+            let res = await fetch(`/api/v1/buildings/${buildingId}/units/${role.unit_id}/roles/${role.id}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    roleType,
+                    effectiveFrom,
+                    isFeePayer
                 })
-                .eq('id', role.id);
+            });
 
-            if (updateError) throw updateError;
+            let data = await res.json();
+
+            // Handle duplicate fee payer
+            if (!res.ok && data.error === 'DUPLICATE_FEE_PAYER') {
+                // In EditRoleModal, we just show an error message and refuse to update.
+                // The prompt says "כבר קיים משלם דמי ניהול פעיל ליחידה זו. לא ניתן להגדיר יותר מאחד כרגע."
+                setError(`כבר קיים משלם דמי ניהול פעיל ליחידה זו. לא ניתן להגדיר יותר מאחד כרגע.`);
+                setIsSubmitting(false);
+                return;
+            } else if (!res.ok) {
+                throw new Error(data.error || 'Failed to update role');
+            }
 
             onSuccess();
         } catch (err: any) {
             console.error('Error updating role:', err);
-            setError('אירעה שגיאה בעדכון התפקיד. אנא נסה שוב.');
+            setError(err.message || 'אירעה שגיאה בעדכון התפקיד. אנא נסה שוב.');
         } finally {
             setIsSubmitting(false);
         }

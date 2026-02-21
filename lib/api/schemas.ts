@@ -28,8 +28,13 @@ export const createUnitRoleSchema = z.object({
     roleType: z.enum(['owner', 'tenant', 'guarantor']),
     effectiveFrom: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
     isFeePayer: z.boolean().default(false),
+    replaceFeePayer: z.boolean().optional(),
 })
 
-export const closeUnitRoleSchema = z.object({
-    effectiveTo: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+export const updateUnitRoleSchema = z.object({
+    roleType: z.enum(['owner', 'tenant', 'guarantor']).optional(),
+    effectiveFrom: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+    effectiveTo: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable().optional(),
+    isFeePayer: z.boolean().optional(),
+    replaceFeePayer: z.boolean().optional(),
 })

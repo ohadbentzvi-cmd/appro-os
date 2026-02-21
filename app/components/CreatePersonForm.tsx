@@ -2,7 +2,6 @@
 
 import React, { useState } from 'react';
 import { X, AlertTriangle, Loader2 } from 'lucide-react';
-import { supabase } from '@/lib/supabase/client';
 
 export interface Person {
     id: string;
@@ -45,21 +44,32 @@ export default function CreatePersonForm({ onSuccess, onCancel }: CreatePersonFo
 
         setIsCreating(true);
         try {
-            const { data, error } = await supabase
-                .from('people')
-                .insert([{
-                    full_name: newName,
+            const res = await fetch('/api/v1/people', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    fullName: newName,
                     email: newEmail || null,
-                    phone: newPhone,
-                    tenant_id: '00000000-0000-0000-0000-000000000000'
-                }])
-                .select()
-                .single();
+                    phone: newPhone
+                })
+            });
 
-            if (error) throw error;
+            const { data, error } = await res.json();
+
+            if (!res.ok) {
+                throw new Error(error || 'Failed to create person');
+            }
 
             if (data) {
-                onSuccess(data as Person);
+                // Map the returned camelCase to the expected snake_case type to avoid changing other components relying on this Person type right now, or just use it.
+                // Wait, Person interface expects full_name. Let's map it.
+                const mappedPerson: Person = {
+                    id: data.id,
+                    full_name: data.fullName,
+                    email: data.email,
+                    phone: data.phone
+                };
+                onSuccess(mappedPerson);
             }
         } catch (error: any) {
             console.error('Create person error:', error);

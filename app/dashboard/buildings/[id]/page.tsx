@@ -3,12 +3,13 @@
 import React from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Loader2, AlertCircle, ChevronRight, Info, Grid, MapPin, Building2, Users } from 'lucide-react';
+import { Building2, ChevronLeft, Loader2, AlertCircle, ChevronRight, Info, Grid, MapPin, Users } from 'lucide-react';
 import { motion } from 'motion/react';
-import { supabase } from '@/lib/supabase/client';
-import { Building, Unit } from '@/lib/supabase/types';
 
-interface UnitRowData extends Unit {
+interface UnitRowData {
+    id: string;
+    unitNumber: string;
+    floor: number;
     active_occupant_name: string | null;
     active_role_type: string | null;
 }
@@ -18,7 +19,7 @@ export default function BuildingDetail() {
     const id = params?.id as string;
     const router = useRouter();
 
-    const [building, setBuilding] = React.useState<Building | null>(null);
+    const [building, setBuilding] = React.useState<any | null>(null);
     const [units, setUnits] = React.useState<UnitRowData[]>([]);
     const [loading, setLoading] = React.useState(true);
     const [error, setError] = React.useState<string | null>(null);
@@ -32,71 +33,40 @@ export default function BuildingDetail() {
                 setLoading(true);
                 setError(null);
 
-                // Fetch building
-                const { data: bData, error: bError } = await supabase
-                    .from('buildings')
-                    .select('*')
-                    .eq('id', id)
-                    .single();
+                // Fetch building and units concurrently
+                const [buildingRes, unitsRes] = await Promise.all([
+                    fetch(`/api/v1/buildings/${id}`),
+                    fetch(`/api/v1/buildings/${id}/units`)
+                ]);
 
-                if (bError) {
-                    if (bError.code === 'PGRST116') {
-                        throw new Error('BUILDING_NOT_FOUND');
-                    }
-                    throw bError;
+                if (!buildingRes.ok) {
+                    if (buildingRes.status === 404) throw new Error('BUILDING_NOT_FOUND');
+                    throw new Error(`HTTP ${buildingRes.status}`);
+                }
+                if (!unitsRes.ok) {
+                    throw new Error(`HTTP ${unitsRes.status}`);
                 }
 
-                setBuilding(bData);
+                const buildingData = await buildingRes.json();
+                const unitsData = await unitsRes.json();
 
-                // Fetch units with roles and people
-                const { data: uData, error: uError } = await supabase
-                    .from('units')
-                    .select(`
-            *,
-            unit_roles (
-              role_type,
-              effective_to,
-              people (
-                full_name
-              )
-            )
-          `)
-                    .eq('building_id', id)
-                    .order('floor', { ascending: true })
-                    .order('unit_number', { ascending: true });
+                if (buildingData.error) throw new Error(buildingData.error);
+                if (unitsData.error) throw new Error(unitsData.error);
 
-                if (uError) throw uError;
+                setBuilding(buildingData.data);
 
-                // Process units to find active occupant
-                const processedUnits: UnitRowData[] = (uData || []).map((unit: any) => {
-                    let activeName = null;
-                    let activeRole = null;
-
-                    if (unit.unit_roles && Array.isArray(unit.unit_roles)) {
-                        // Find an active role (effective_to is null)
-                        const activeRoleObj = unit.unit_roles.find((r: any) => r.effective_to === null);
-                        if (activeRoleObj) {
-                            activeRole = activeRoleObj.role_type;
-                            if (activeRoleObj.people && !Array.isArray(activeRoleObj.people)) {
-                                activeName = activeRoleObj.people.full_name;
-                            } else if (Array.isArray(activeRoleObj.people) && activeRoleObj.people.length > 0) {
-                                activeName = activeRoleObj.people[0].full_name;
-                            }
-                        }
-                    }
-
-                    return {
-                        ...unit,
-                        active_occupant_name: activeName,
-                        active_role_type: activeRole
-                    };
-                });
+                // Process units to map camelCase response to what the component expects
+                const processedUnits: UnitRowData[] = (unitsData.data || []).map((unit: any) => ({
+                    ...unit,
+                    active_occupant_name: unit.activeOccupantName,
+                    active_role_type: unit.activeRoleType
+                }));
 
                 setUnits(processedUnits);
 
             } catch (err: any) {
                 console.error('Error fetching building detail:', err);
-                setError(err.message === 'BUILDING_NOT_FOUND' ? 'המבנה לא נמצא או שנמחק מהמערכת.' : err.message);
+                setError(err.message === 'BUILDING_NOT_FOUND' ? 'המבנה לא נמצא או שנמחק מהמערכת.' : 'אירעה שגיאה בטעינת הנתונים. נסה לרענן את הדף.');
             } finally {
                 setLoading(false);
             }
@@ -166,7 +136,7 @@ export default function BuildingDetail() {
                         <h1 className="text-3xl font-bold text-apro-navy tracking-tight">{building.name}</h1>
                         <div className="flex items-center gap-2 text-gray-500 mt-1">
                             <MapPin className="w-4 h-4" />
-                            <span>{building.address_street}, {building.address_city}</span>
+                            <span>{building.addressStreet}, {building.addressCity}</span>
                         </div>
                     </div>
                 </div>
@@ -231,13 +201,13 @@ export default function BuildingDetail() {
                                     <div>
                                         <label className="block text-sm font-semibold text-gray-500 mb-2">עיר</label>
                                         <div className="w-full bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 text-gray-700 font-medium">
-                                            {building.address_city || '-'}
+                                            {building.addressCity || '-'}
                                         </div>
                                     </div>
                                     <div>
                                         <label className="block text-sm font-semibold text-gray-500 mb-2">שנת הקמה</label>
                                         <div className="w-full bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 text-gray-700 font-medium">
-                                            {building.built_year || '-'}
+                                            {building.builtYear || '-'}
                                         </div>
                                     </div>
                                 </div>
@@ -246,7 +216,7 @@ export default function BuildingDetail() {
                                     <div>
                                         <label className="block text-sm font-semibold text-gray-500 mb-2">כתובת / רחוב</label>
                                         <div className="w-full bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 text-gray-700 font-medium">
-                                            {building.address_street || '-'}
+                                            {building.addressStreet || '-'}
                                         </div>
                                     </div>
 
@@ -254,13 +224,13 @@ export default function BuildingDetail() {
                                         <div className="flex-1">
                                             <label className="block text-sm font-semibold text-gray-500 mb-2">מספר קומות</label>
                                             <div className="w-full bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 text-gray-700 font-bold text-center">
-                                                {building.num_floors || '0'}
+                                                {building.numFloors || '0'}
                                             </div>
                                         </div>
                                         <div className="flex-1">
                                             <label className="block text-sm font-semibold text-gray-500 mb-2">סה״כ יחידות</label>
                                             <div className="w-full bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 text-gray-700 font-bold text-center">
-                                                {building.num_units || '0'}
+                                                {building.numUnits || '0'}
                                             </div>
                                         </div>
                                     </div>
@@ -306,7 +276,7 @@ export default function BuildingDetail() {
                                                     <td className="px-6 py-4">
                                                         <div className="font-bold text-apro-navy flex items-center gap-2">
                                                             <span className="w-2 h-2 rounded-full bg-apro-green"></span>
-                                                            דירה {unit.unit_number || '-'}
+                                                            דירה {unit.unitNumber || '-'}
                                                         </div>
                                                     </td>
                                                     <td className="px-6 py-4 text-center">

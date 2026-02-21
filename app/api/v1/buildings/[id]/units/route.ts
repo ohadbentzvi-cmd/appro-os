@@ -30,6 +30,23 @@ export async function GET(
           FROM ${unitRoles} 
           WHERE ${unitRoles.unitId} = ${units.id}
             AND (${unitRoles.effectiveTo} IS NULL OR ${unitRoles.effectiveTo} >= CURRENT_DATE)
+        )`,
+                activeOccupantName: sql<string | null>`(
+          SELECT p.full_name
+          FROM ${unitRoles} ur
+          JOIN people p ON p.id = ur.person_id
+          WHERE ur.unit_id = ${units.id}
+            AND (ur.effective_to IS NULL OR ur.effective_to >= CURRENT_DATE)
+          ORDER BY ur.created_at DESC
+          LIMIT 1
+        )`,
+                activeRoleType: sql<string | null>`(
+          SELECT role_type
+          FROM ${unitRoles}
+          WHERE unit_id = ${units.id}
+            AND (effective_to IS NULL OR effective_to >= CURRENT_DATE)
+          ORDER BY created_at DESC
+          LIMIT 1
         )`
             })
             .from(units)

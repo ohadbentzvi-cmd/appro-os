@@ -2,17 +2,17 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { X, Search, Plus, AlertTriangle, Loader2, Check } from 'lucide-react';
-import { supabase } from '@/lib/supabase/client';
 import CreatePersonForm, { Person } from './CreatePersonForm';
 
 interface AssignPersonModalProps {
     isOpen: boolean;
     onClose: () => void;
+    buildingId: string;
     unitId: string;
     onSuccess: () => void;
 }
 
-export default function AssignPersonModal({ isOpen, onClose, unitId, onSuccess }: AssignPersonModalProps) {
+export default function AssignPersonModal({ isOpen, onClose, buildingId, unitId, onSuccess }: AssignPersonModalProps) {
     const [step, setStep] = useState<1 | 2>(1);
 
     // Step 1 State
@@ -37,7 +37,6 @@ export default function AssignPersonModal({ isOpen, onClose, unitId, onSuccess }
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [submitError, setSubmitError] = useState<string | null>(null);
     const [showReplaceWarning, setShowReplaceWarning] = useState(false);
-    const [existingFeePayerId, setExistingFeePayerId] = useState<string | null>(null);
 
     // Debounce search
     useEffect(() => {
@@ -71,21 +70,25 @@ export default function AssignPersonModal({ isOpen, onClose, unitId, onSuccess }
 
             setSubmitError(null);
             setShowReplaceWarning(false);
-            setExistingFeePayerId(null);
         }
     }, [isOpen]);
 
     const performSearch = async (query: string) => {
         setIsSearching(true);
         try {
-            const { data, error } = await supabase
-                .from('people')
-                .select('*')
-                .or(`full_name.ilike.%${query}%,email.ilike.%${query}%,phone.ilike.%${query}%`)
-                .limit(10);
+            const res = await fetch(`/api/v1/people?search=${encodeURIComponent(query)}&limit=10`);
+            if (!res.ok) throw new Error('Search failed');
+            const { data } = await res.json();
 
-            if (error) throw error;
-            setSearchResults(data || []);
+            // Re-map camelCase properties from API to existing snake_case Person type expected by component
+            const mappedData = data.map((p: any) => ({
+                id: p.id,
+                full_name: p.fullName,
+                email: p.email,
+                phone: p.phone
+            }));
+
+            setSearchResults(mappedData || []);
         } catch (error) {
             console.error('Search error:', error);
         } finally {
@@ -123,48 +126,28 @@ export default function AssignPersonModal({ isOpen, onClose, unitId, onSuccess }
         setIsSubmitting(true);
 
         try {
-            // Check fee payer conflict if needed
-            if (isFeePayer && !showReplaceWarning) {
-                const { data: existingRoles, error: cError } = await supabase
-                    .from('unit_roles')
-                    .select('id')
-                    .eq('unit_id', unitId)
-                    .is('effective_to', null)
-                    .eq('is_fee_payer', true);
+            const res = await fetch(`/api/v1/buildings/${buildingId}/units/${unitId}/roles`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    personId: selectedPerson!.id,
+                    roleType,
+                    effectiveFrom,
+                    isFeePayer,
+                    replaceFeePayer: showReplaceWarning
+                })
+            });
 
-                if (cError) throw cError;
+            const data = await res.json();
 
-                if (existingRoles && existingRoles.length > 0) {
-                    setExistingFeePayerId(existingRoles[0].id);
+            if (!res.ok) {
+                if (data.error === 'DUPLICATE_FEE_PAYER') {
                     setShowReplaceWarning(true);
                     setIsSubmitting(false);
                     return; // Stop and wait for user confirmation
                 }
+                throw new Error(data.error || 'Failed to assign role');
             }
-
-            // Proceed with submission
-            if (showReplaceWarning && existingFeePayerId) {
-                const { error: patchError } = await supabase
-                    .from('unit_roles')
-                    .update({ is_fee_payer: false })
-                    .eq('id', existingFeePayerId);
-
-                if (patchError) throw patchError;
-            }
-
-            const { error: insertError } = await supabase
-                .from('unit_roles')
-                .insert({
-                    unit_id: unitId,
-                    person_id: selectedPerson!.id,
-                    role_type: roleType,
-                    effective_from: effectiveFrom,
-                    effective_to: null,
-                    is_fee_payer: isFeePayer,
-                    tenant_id: '00000000-0000-0000-0000-000000000000'
-                });
-
-            if (insertError) throw insertError;
 
             // Success!
             onSuccess();
