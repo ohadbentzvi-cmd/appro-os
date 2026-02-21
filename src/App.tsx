@@ -2,7 +2,7 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import { Building2, Home, Settings } from 'lucide-react';
 import BuildingsList from './pages/BuildingsList';
 import BuildingDetail from './pages/BuildingDetail';
-import UnitDetailPlaceholder from './pages/UnitDetailPlaceholder';
+import UnitDetail from './pages/UnitDetail';
 
 export default function App() {
   return (
@@ -48,7 +48,7 @@ export default function App() {
           <Route path="/" element={<Navigate to="/dashboard/buildings" replace />} />
           <Route path="/dashboard/buildings" element={<BuildingsList />} />
           <Route path="/dashboard/buildings/:id" element={<BuildingDetail />} />
-          <Route path="/dashboard/buildings/:id/units/:unitId" element={<UnitDetailPlaceholder />} />
+          <Route path="/dashboard/buildings/:id/units/:unitId" element={<UnitDetail />} />
         </Routes>
       </main>
     </div>
