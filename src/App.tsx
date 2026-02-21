@@ -1,4 +1,4 @@
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate, Link, useLocation } from 'react-router-dom';
 import { Building2, Home, Settings, Users } from 'lucide-react';
 import BuildingsList from './pages/BuildingsList';
 import BuildingDetail from './pages/BuildingDetail';
@@ -7,6 +7,14 @@ import PeopleList from './pages/PeopleList';
 import PersonDetail from './pages/PersonDetail';
 
 export default function App() {
+  const location = useLocation();
+
+  const getNavClass = (path: string) => {
+    return location.pathname.startsWith(path)
+      ? "flex items-center gap-3 px-4 py-3 rounded-xl bg-apro-green text-white font-bold transition-all shadow-lg shadow-apro-green/20"
+      : "flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/5 text-white/70 hover:text-white transition-all";
+  };
+
   return (
     <div className="min-h-screen flex bg-[#f8f9fa] font-sans">
       {/* Right Sidebar Navigation */}
@@ -23,31 +31,31 @@ export default function App() {
 
         {/* Navigation Items */}
         <nav className="flex-grow p-4 space-y-2 mt-4">
-          <a
-            href="/dashboard/buildings"
-            className="flex items-center gap-3 px-4 py-3 rounded-xl bg-apro-green text-white font-bold transition-all shadow-lg shadow-apro-green/20"
+          <Link
+            to="/dashboard/buildings"
+            className={getNavClass("/dashboard/buildings")}
           >
             <Home className="w-5 h-5" />
             <span>עמוד הבית</span>
-          </a>
-          <a
-            href="/dashboard/people"
-            className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/5 text-white/70 hover:text-white transition-all"
+          </Link>
+          <Link
+            to="/dashboard/people"
+            className={getNavClass("/dashboard/people")}
           >
             <Users className="w-5 h-5" />
             <span>אנשים</span>
-          </a>
+          </Link>
         </nav>
 
         {/* Bottom Navigation */}
         <div className="p-4 border-t border-white/10">
-          <a
-            href="#"
-            className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/5 text-white/70 hover:text-white transition-all group"
+          <Link
+            to="/dashboard/settings"
+            className={getNavClass("/dashboard/settings") + " group"}
           >
             <Settings className="w-5 h-5 group-hover:rotate-45 transition-transform" />
             <span className="font-medium">מערכת</span>
-          </a>
+          </Link>
         </div>
       </aside>
 

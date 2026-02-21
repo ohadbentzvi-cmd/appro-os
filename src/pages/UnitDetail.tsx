@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { ChevronRight, AlertCircle, Loader2, Home } from 'lucide-react';
+import { ChevronRight, AlertCircle, Loader2, Home, CheckCircle2 } from 'lucide-react';
 import { supabase } from '../supabase';
+import AssignPersonModal from '../components/AssignPersonModal';
 
 interface UnitRoleData {
     id: string;
@@ -26,6 +27,11 @@ export default function UnitDetail() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [showHistory, setShowHistory] = useState(false);
+
+    // Assign Modal & Refresh State
+    const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
+    const [refreshTrigger, setRefreshTrigger] = useState(0);
+    const [toastMessage, setToastMessage] = useState<string | null>(null);
 
     useEffect(() => {
         async function fetchUnitData() {
@@ -84,10 +90,17 @@ export default function UnitDetail() {
         }
 
         fetchUnitData();
-    }, [unitId, id]);
+    }, [unitId, id, refreshTrigger]);
 
     const handleAssignClick = () => {
-        alert("בקרוב — פיצ׳ר זה יהיה זמין בשלב הבא");
+        setIsAssignModalOpen(true);
+    };
+
+    const handleAssignSuccess = () => {
+        setIsAssignModalOpen(false);
+        setRefreshTrigger(prev => prev + 1);
+        setToastMessage('הדייר שויך ביחידה בהצלחה');
+        setTimeout(() => setToastMessage(null), 3000);
     };
 
     if (loading) {
@@ -219,6 +232,12 @@ export default function UnitDetail() {
             <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
                 <div className="px-6 py-6 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
                     <h2 className="text-xl font-bold text-apro-navy">דיירים פעילים</h2>
+                    <button
+                        onClick={handleAssignClick}
+                        className="px-6 py-2 bg-apro-green text-white font-bold rounded-xl hover:bg-emerald-600 transition-colors shadow-sm text-sm"
+                    >
+                        + שיוך דייר ליחידה
+                    </button>
                 </div>
 
                 {activeRoles.length === 0 ? (
@@ -245,8 +264,8 @@ export default function UnitDetail() {
                                         </td>
                                         <td className="px-6 py-4">
                                             <span className={`inline-flex px-3 py-1 rounded-full text-xs font-bold border ${role.role_type === 'owner' ? 'bg-blue-50 text-blue-700 border-blue-100' :
-                                                    role.role_type === 'tenant' ? 'bg-orange-50 text-orange-700 border-orange-100' :
-                                                        'bg-gray-50 text-gray-700 border-gray-200'
+                                                role.role_type === 'tenant' ? 'bg-orange-50 text-orange-700 border-orange-100' :
+                                                    'bg-gray-50 text-gray-700 border-gray-200'
                                                 }`}>
                                                 {roleTranslations[role.role_type] || role.role_type}
                                             </span>
@@ -332,15 +351,21 @@ export default function UnitDetail() {
                 )}
             </div>
 
-            {/* SECTION 4: Assign Person Button */}
-            <div className="pt-4 pb-8">
-                <button
-                    onClick={handleAssignClick}
-                    className="w-full sm:w-auto px-8 py-4 bg-apro-green text-white font-bold rounded-xl hover:bg-emerald-600 transition-colors shadow-lg shadow-apro-green/20"
-                >
-                    + שיוך דייר ליחידה
-                </button>
-            </div>
+            {/* Assign Modal */}
+            <AssignPersonModal
+                isOpen={isAssignModalOpen}
+                onClose={() => setIsAssignModalOpen(false)}
+                unitId={unitId!}
+                onSuccess={handleAssignSuccess}
+            />
+
+            {/* Success Toast */}
+            {toastMessage && (
+                <div className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-gray-900 text-white px-6 py-3 rounded-xl shadow-2xl flex items-center gap-3 animate-in fade-in slide-in-from-bottom-4 z-50">
+                    <CheckCircle2 className="w-5 h-5 text-apro-green" />
+                    <span className="font-bold">{toastMessage}</span>
+                </div>
+            )}
         </div>
     );
 }

@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Users, ChevronLeft, Loader2, AlertCircle, Search, X, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
+import { Users, ChevronLeft, Loader2, AlertCircle, Search, X, ArrowUpDown, ArrowUp, ArrowDown, Check } from 'lucide-react';
 import { motion } from 'motion/react';
 import { useNavigate } from 'react-router-dom';
 import { supabase, Person } from '../supabase';
+import CreatePersonModal from '../components/CreatePersonModal';
 
 type PersonWithActiveRolesCount = Person & {
     active_roles_count: number;
@@ -27,39 +28,43 @@ export default function PeopleList() {
 
     const navigate = useNavigate();
 
-    useEffect(() => {
-        async function fetchPeople() {
-            try {
-                setLoading(true);
-                // Fetch people and their unit roles to calculate active roles count
-                const { data, error } = await supabase
-                    .from('people')
-                    .select('*, unit_roles(id, effective_to)');
+    // Create Modal & Toast State
+    const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+    const [showSuccessToast, setShowSuccessToast] = useState(false);
 
-                if (error) throw error;
+    const fetchPeople = async () => {
+        try {
+            setLoading(true);
+            // Fetch people and their unit roles to calculate active roles count
+            const { data, error } = await supabase
+                .from('people')
+                .select('*, unit_roles(id, effective_to)');
 
-                // Process the data to include active_roles_count
-                const processedData: PersonWithActiveRolesCount[] = (data || []).map((person: any) => {
-                    const activeRoles = person.unit_roles ? person.unit_roles.filter((role: any) => role.effective_to === null).length : 0;
-                    return {
-                        id: person.id,
-                        full_name: person.full_name,
-                        phone: person.phone,
-                        email: person.email,
-                        created_at: person.created_at,
-                        active_roles_count: activeRoles
-                    };
-                });
+            if (error) throw error;
 
-                setPeople(processedData);
-            } catch (err: any) {
-                console.error('Error fetching people:', err);
-                setError(err.message);
-            } finally {
-                setLoading(false);
-            }
+            // Process the data to include active_roles_count
+            const processedData: PersonWithActiveRolesCount[] = (data || []).map((person: any) => {
+                const activeRoles = person.unit_roles ? person.unit_roles.filter((role: any) => role.effective_to === null).length : 0;
+                return {
+                    id: person.id,
+                    full_name: person.full_name,
+                    phone: person.phone,
+                    email: person.email,
+                    created_at: person.created_at,
+                    active_roles_count: activeRoles
+                };
+            });
+
+            setPeople(processedData);
+        } catch (err: any) {
+            console.error('Error fetching people:', err);
+            setError(err.message);
+        } finally {
+            setLoading(false);
         }
+    };
 
+    useEffect(() => {
         fetchPeople();
     }, []);
 
@@ -125,8 +130,8 @@ export default function PeopleList() {
                     <p className="text-gray-500 font-medium">כל האנשים הרשומים במערכת</p>
                 </div>
                 <button
-                    disabled
-                    className="bg-apro-green text-white px-6 py-2.5 rounded-xl font-bold shadow-lg shadow-apro-green/20 opacity-50 cursor-not-allowed flex items-center gap-2"
+                    onClick={() => setIsCreateModalOpen(true)}
+                    className="bg-apro-green hover:bg-emerald-600 transition-colors text-white px-6 py-2.5 rounded-xl font-bold shadow-lg shadow-apro-green/20 flex items-center gap-2"
                 >
                     + הוסף אדם
                 </button>
@@ -282,6 +287,28 @@ export default function PeopleList() {
                     </>
                 )}
             </div>
+
+            {/* Create Person Modal */}
+            <CreatePersonModal
+                isOpen={isCreateModalOpen}
+                onClose={() => setIsCreateModalOpen(false)}
+                onSuccess={() => {
+                    setIsCreateModalOpen(false);
+                    setShowSuccessToast(true);
+                    fetchPeople();
+                    setTimeout(() => setShowSuccessToast(false), 3000);
+                }}
+            />
+
+            {/* Success Toast */}
+            {showSuccessToast && (
+                <div className="fixed bottom-8 left-1/2 -translate-x-1/2 bg-gray-900 text-white px-6 py-3 rounded-xl shadow-2xl flex items-center gap-3 z-50 animate-in fade-in slide-in-from-bottom-4">
+                    <div className="bg-green-500/20 p-1 rounded-full">
+                        <Check className="w-4 h-4 text-green-400" />
+                    </div>
+                    <span className="font-medium">האדם נוסף בהצלחה</span>
+                </div>
+            )}
         </>
     );
 }
