@@ -6,9 +6,12 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "db:generate": "pnpm --filter @apro/db db:generate",
+    "db:push": "pnpm --filter @apro/db db:push"
   },
   "dependencies": {
+    "@apro/db": "workspace:*",
     "@fontsource/assistant": "^5.2.9",
     "@supabase/auth-helpers-nextjs": "^0.15.0",
     "@supabase/supabase-js": "^2.97.0",
