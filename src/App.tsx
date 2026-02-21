@@ -1,8 +1,10 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
-import { Building2, Home, Settings } from 'lucide-react';
+import { Building2, Home, Settings, Users } from 'lucide-react';
 import BuildingsList from './pages/BuildingsList';
 import BuildingDetail from './pages/BuildingDetail';
 import UnitDetail from './pages/UnitDetail';
+import PeopleList from './pages/PeopleList';
+import PersonDetail from './pages/PersonDetail';
 
 export default function App() {
   return (
@@ -28,6 +30,13 @@ export default function App() {
             <Home className="w-5 h-5" />
             <span>עמוד הבית</span>
           </a>
+          <a
+            href="/dashboard/people"
+            className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/5 text-white/70 hover:text-white transition-all"
+          >
+            <Users className="w-5 h-5" />
+            <span>אנשים</span>
+          </a>
         </nav>
 
         {/* Bottom Navigation */}
@@ -49,6 +58,8 @@ export default function App() {
           <Route path="/dashboard/buildings" element={<BuildingsList />} />
           <Route path="/dashboard/buildings/:id" element={<BuildingDetail />} />
           <Route path="/dashboard/buildings/:id/units/:unitId" element={<UnitDetail />} />
+          <Route path="/dashboard/people" element={<PeopleList />} />
+          <Route path="/dashboard/people/:id" element={<PersonDetail />} />
         </Routes>
       </main>
     </div>
