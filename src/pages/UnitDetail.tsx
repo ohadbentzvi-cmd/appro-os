@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { ChevronRight, AlertCircle, Loader2, Home, CheckCircle2 } from 'lucide-react';
-import { supabase } from '../supabase';
+import { Building2, ChevronRight, Home, Users, MapPin, Hash, Plus, Check, FileText, ChevronLeft, Loader2, AlertCircle, Pencil } from 'lucide-react';
+import { supabase, Building, Unit, Person, UnitRole } from '../supabase';
 import AssignPersonModal from '../components/AssignPersonModal';
+import EditRoleModal from '../components/EditRoleModal';
 
 interface UnitRoleData {
     id: string;
@@ -32,6 +33,15 @@ export default function UnitDetail() {
     const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
     const [refreshTrigger, setRefreshTrigger] = useState(0);
     const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+    // Edit Role Modal State
+    const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+    const [selectedRoleForEdit, setSelectedRoleForEdit] = useState<UnitRoleData | null>(null);
+
+    const handleEditClick = (role: UnitRoleData) => {
+        setSelectedRoleForEdit(role);
+        setIsEditModalOpen(true);
+    };
 
     useEffect(() => {
         async function fetchUnitData() {
@@ -117,7 +127,7 @@ export default function UnitDetail() {
             <div className="space-y-6 max-w-2xl mx-auto mt-20">
                 <div className="flex items-center gap-4">
                     <Link
-                        to={`/dashboard/buildings/${id}`}
+                        to={`/ dashboard / buildings / ${id} `}
                         className="p-2 hover:bg-white rounded-full transition-colors text-gray-500 hover:text-apro-navy"
                     >
                         <ChevronRight className="w-6 h-6" />
@@ -134,7 +144,7 @@ export default function UnitDetail() {
                         <p className="text-red-700 text-lg">לא ניתן לטעון את פרטי היחידה.</p>
                     </div>
                     <Link
-                        to={`/dashboard/buildings/${id}`}
+                        to={`/ dashboard / buildings / ${id} `}
                         className="mt-4 px-6 py-3 bg-white text-red-700 font-bold rounded-xl hover:bg-red-50 border border-red-200 transition-colors shadow-sm"
                     >
                         חזור לבניין
@@ -185,11 +195,11 @@ export default function UnitDetail() {
                         <Home className="w-4 h-4" />
                     </Link>
                     <ChevronRight className="w-4 h-4 transform rotate-180" />
-                    <Link to={`/dashboard/buildings/${id}`} className="hover:text-apro-navy transition-colors">
+                    <Link to={`/ dashboard / buildings / ${id} `} className="hover:text-apro-navy transition-colors">
                         {buildingName || 'שם הבניין'}
                     </Link>
                     <ChevronRight className="w-4 h-4 transform rotate-180" />
-                    <Link to={`/dashboard/buildings/${id}/units/${unitId}`} className="text-apro-green">
+                    <Link to={`/ dashboard / buildings / ${id} /units/${unitId} `} className="text-apro-green">
                         יחידה {unit.unit_number}
                     </Link>
                 </div>
@@ -236,7 +246,7 @@ export default function UnitDetail() {
                         onClick={handleAssignClick}
                         className="px-6 py-2 bg-apro-green text-white font-bold rounded-xl hover:bg-emerald-600 transition-colors shadow-sm text-sm"
                     >
-                        + שיוך דייר ליחידה
+                        + שיוך אדם ליחידה
                     </button>
                 </div>
 
@@ -263,10 +273,10 @@ export default function UnitDetail() {
                                             {getPersonName(role.people)}
                                         </td>
                                         <td className="px-6 py-4">
-                                            <span className={`inline-flex px-3 py-1 rounded-full text-xs font-bold border ${role.role_type === 'owner' ? 'bg-blue-50 text-blue-700 border-blue-100' :
+                                            <span className={`inline - flex px - 3 py - 1 rounded - full text - xs font - bold border ${role.role_type === 'owner' ? 'bg-blue-50 text-blue-700 border-blue-100' :
                                                 role.role_type === 'tenant' ? 'bg-orange-50 text-orange-700 border-orange-100' :
                                                     'bg-gray-50 text-gray-700 border-gray-200'
-                                                }`}>
+                                                } `}>
                                                 {roleTranslations[role.role_type] || role.role_type}
                                             </span>
                                         </td>
@@ -279,9 +289,18 @@ export default function UnitDetail() {
                                             {formatDate(role.effective_from)}
                                         </td>
                                         <td className="px-6 py-4">
-                                            <button disabled className="text-gray-400 bg-gray-100 px-3 py-1.5 rounded-lg text-sm font-medium cursor-not-allowed opacity-60">
-                                                הסר תפקיד
-                                            </button>
+                                            <div className="flex items-center gap-2">
+                                                <button
+                                                    onClick={() => handleEditClick(role)}
+                                                    className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                                                    title="ערוך תפקיד"
+                                                >
+                                                    <Pencil className="w-4 h-4" />
+                                                </button>
+                                                <button disabled className="text-gray-400 bg-gray-100 px-3 py-1.5 rounded-lg text-sm font-medium cursor-not-allowed opacity-60">
+                                                    הסר
+                                                </button>
+                                            </div>
                                         </td>
                                     </tr>
                                 ))}
@@ -298,7 +317,7 @@ export default function UnitDetail() {
                     className="w-full px-6 py-6 flex justify-between items-center bg-gray-50/50 hover:bg-gray-50 transition-colors text-right"
                 >
                     <h2 className="text-xl font-bold text-apro-navy">היסטוריית תפקידים</h2>
-                    <ChevronRight className={`w-5 h-5 text-gray-500 transform transition-transform ${showHistory ? 'rotate-90' : 'rotate-180'}`} />
+                    <ChevronRight className={`w - 5 h - 5 text - gray - 500 transform transition - transform ${showHistory ? 'rotate-90' : 'rotate-180'} `} />
                 </button>
 
                 {showHistory && (
@@ -359,11 +378,30 @@ export default function UnitDetail() {
                 onSuccess={handleAssignSuccess}
             />
 
+            {/* Edit Role Modal */}
+            <EditRoleModal
+                isOpen={isEditModalOpen}
+                onClose={() => {
+                    setIsEditModalOpen(false);
+                    setSelectedRoleForEdit(null);
+                }}
+                role={selectedRoleForEdit}
+                onSuccess={() => {
+                    setIsEditModalOpen(false);
+                    setSelectedRoleForEdit(null);
+                    setRefreshTrigger(prev => prev + 1);
+                    setToastMessage('התפקיד עודכן בהצלחה');
+                    setTimeout(() => setToastMessage(null), 3000);
+                }}
+            />
+
             {/* Success Toast */}
             {toastMessage && (
-                <div className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-gray-900 text-white px-6 py-3 rounded-xl shadow-2xl flex items-center gap-3 animate-in fade-in slide-in-from-bottom-4 z-50">
-                    <CheckCircle2 className="w-5 h-5 text-apro-green" />
-                    <span className="font-bold">{toastMessage}</span>
+                <div className="fixed bottom-8 left-1/2 -translate-x-1/2 bg-gray-900 text-white px-6 py-3 rounded-xl shadow-2xl flex items-center gap-3 z-50 animate-in fade-in slide-in-from-bottom-4">
+                    <div className="bg-green-500/20 p-1 rounded-full">
+                        <Check className="w-4 h-4 text-green-400" />
+                    </div>
+                    <span className="font-medium">{toastMessage}</span>
                 </div>
             )}
         </div>

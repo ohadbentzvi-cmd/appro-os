@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { ChevronLeft, Loader2, AlertCircle, Building2, ChevronRight, User, Mail, Phone } from 'lucide-react';
+import { ChevronLeft, Loader2, AlertCircle, Building2, ChevronRight, User, Mail, Phone, Check } from 'lucide-react';
 import { supabase, Person, UnitRole, Unit, Building } from '../supabase';
+import AssignUnitModal from '../components/AssignUnitModal';
 
 interface ExtendedUnitRole extends UnitRole {
     is_fee_payer: boolean;
@@ -33,13 +34,16 @@ export default function PersonDetail() {
     const [error, setError] = useState<string | null>(null);
     const [showHistory, setShowHistory] = useState(false);
 
-    useEffect(() => {
-        async function fetchPersonDetail() {
-            try {
-                setLoading(true);
-                const { data, error } = await supabase
-                    .from('people')
-                    .select(`
+    // Modal State
+    const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
+    const [showSuccessToast, setShowSuccessToast] = useState(false);
+
+    const fetchPersonDetail = async () => {
+        try {
+            setLoading(true);
+            const { data, error } = await supabase
+                .from('people')
+                .select(`
                         id,
                         full_name,
                         email,
@@ -65,21 +69,22 @@ export default function PersonDetail() {
                             )
                         )
                     `)
-                    .eq('id', id)
-                    .single();
+                .eq('id', id)
+                .single();
 
-                if (error) throw error;
-                if (!data) throw new Error('האדם לא נמצא');
+            if (error) throw error;
+            if (!data) throw new Error('האדם לא נמצא');
 
-                setPerson(data as unknown as PersonDetailData);
-            } catch (err: any) {
-                console.error(err);
-                setError(err.message || 'שגיאה בטעינת נתוני האדם');
-            } finally {
-                setLoading(false);
-            }
+            setPerson(data as unknown as PersonDetailData);
+        } catch (err: any) {
+            console.error(err);
+            setError(err.message || 'שגיאה בטעינת נתוני האדם');
+        } finally {
+            setLoading(false);
         }
+    };
 
+    useEffect(() => {
         if (id) {
             fetchPersonDetail();
         }
@@ -179,11 +184,19 @@ export default function PersonDetail() {
 
             {/* SECTION 2: Active Roles Table */}
             <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-                <div className="px-6 py-6 border-b border-gray-100 flex items-center gap-3 bg-gray-50/50">
-                    <div className="bg-blue-100 p-2 rounded-lg text-blue-600">
-                        <Building2 className="w-5 h-5" />
+                <div className="px-6 py-6 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
+                    <div className="flex items-center gap-3">
+                        <div className="bg-blue-100 p-2 rounded-lg text-blue-600">
+                            <Building2 className="w-5 h-5" />
+                        </div>
+                        <h2 className="text-xl font-bold text-apro-navy">תפקידים פעילים</h2>
                     </div>
-                    <h2 className="text-xl font-bold text-apro-navy">תפקידים פעילים</h2>
+                    <button
+                        onClick={() => setIsAssignModalOpen(true)}
+                        className="px-6 py-2 bg-apro-green text-white font-bold rounded-xl hover:bg-emerald-600 transition-colors shadow-sm text-sm"
+                    >
+                        + שיוך יחידה לאדם
+                    </button>
                 </div>
 
                 {activeRoles.length === 0 ? (
@@ -333,6 +346,30 @@ export default function PersonDetail() {
                     </div>
                 )}
             </div>
+
+            {/* Assign Unit Modal */}
+            <AssignUnitModal
+                isOpen={isAssignModalOpen}
+                onClose={() => setIsAssignModalOpen(false)}
+                personId={person.id}
+                personName={person.full_name}
+                onSuccess={() => {
+                    setIsAssignModalOpen(false);
+                    setShowSuccessToast(true);
+                    fetchPersonDetail();
+                    setTimeout(() => setShowSuccessToast(false), 3000);
+                }}
+            />
+
+            {/* Success Toast */}
+            {showSuccessToast && (
+                <div className="fixed bottom-8 left-1/2 -translate-x-1/2 bg-gray-900 text-white px-6 py-3 rounded-xl shadow-2xl flex items-center gap-3 z-50 animate-in fade-in slide-in-from-bottom-4">
+                    <div className="bg-green-500/20 p-1 rounded-full">
+                        <Check className="w-4 h-4 text-green-400" />
+                    </div>
+                    <span className="font-medium">היחידה שויכה בהצלחה</span>
+                </div>
+            )}
         </div>
     );
 }
