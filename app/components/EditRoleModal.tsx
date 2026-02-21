@@ -8,11 +8,12 @@ interface EditRoleModalProps {
     isOpen: boolean;
     onClose: () => void;
     buildingId: string;
+    unitId: string;
     role: any; // The full unit_role object with joined people
     onSuccess: () => void;
 }
 
-export default function EditRoleModal({ isOpen, onClose, buildingId, role, onSuccess }: EditRoleModalProps) {
+export default function EditRoleModal({ isOpen, onClose, buildingId, unitId, role, onSuccess }: EditRoleModalProps) {
     // Role Details State
     const [roleType, setRoleType] = useState<'owner' | 'tenant' | 'guarantor'>('tenant');
     const [effectiveFrom, setEffectiveFrom] = useState('');
@@ -63,7 +64,7 @@ export default function EditRoleModal({ isOpen, onClose, buildingId, role, onSuc
             const isMakingFeePayer = isFeePayer && !role.is_fee_payer;
 
             // First attempt to update
-            let res = await fetch(`/api/v1/buildings/${buildingId}/units/${role.unit_id}/roles/${role.id}`, {
+            let res = await fetch(`/api/v1/buildings/${buildingId}/units/${unitId}/roles/${role.id}`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({

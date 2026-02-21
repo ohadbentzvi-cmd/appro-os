@@ -384,6 +384,7 @@ export default function UnitDetail() {
             <EditRoleModal
                 isOpen={isEditModalOpen}
                 buildingId={id as string}
+                unitId={unitId as string}
                 onClose={() => {
                     setIsEditModalOpen(false);
                     setSelectedRoleForEdit(null);

@@ -23,8 +23,8 @@ export async function GET(req: NextRequest) {
                 createdAt: buildings.createdAt,
                 unitCount: sql<number>`(
           SELECT count(*)::int 
-          FROM ${units} 
-          WHERE ${units.buildingId} = ${buildings.id}
+          FROM "units" 
+          WHERE "units"."building_id" = "buildings"."id"
         )`
             })
             .from(buildings)
