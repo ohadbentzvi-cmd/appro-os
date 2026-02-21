@@ -1,0 +1,50 @@
+{
+  "pages": {
+    "/_app": [
+      "static/chunks/node_modules_next_dist_compiled_8ca6b690._.js",
+      "static/chunks/node_modules_next_dist_shared_lib_8bac8163._.js",
+      "static/chunks/node_modules_next_dist_client_5a8a528e._.js",
+      "static/chunks/node_modules_next_dist_b3fb3b5f._.js",
+      "static/chunks/node_modules_next_app_72f3d36f.js",
+      "static/chunks/[next]_entry_page-loader_ts_742e4b53._.js",
+      "static/chunks/node_modules_react-dom_4411d9bd._.js",
+      "static/chunks/node_modules_7f09fef0._.js",
+      "static/chunks/[root-of-the-server]__30cfe2fa._.js",
+      "static/chunks/apro-next_pages__app_2da965e7._.js",
+      "static/chunks/turbopack-apro-next_pages__app_d3cd886e._.js"
+    ],
+    "/_error": [
+      "static/chunks/node_modules_next_dist_compiled_8ca6b690._.js",
+      "static/chunks/node_modules_next_dist_shared_lib_9a2a7093._.js",
+      "static/chunks/node_modules_next_dist_client_5a8a528e._.js",
+      "static/chunks/node_modules_next_dist_a183fb77._.js",
+      "static/chunks/node_modules_next_error_1cfbb379.js",
+      "static/chunks/[next]_entry_page-loader_ts_43b523b5._.js",
+      "static/chunks/node_modules_react-dom_4411d9bd._.js",
+      "static/chunks/node_modules_7f09fef0._.js",
+      "static/chunks/[root-of-the-server]__84e01b38._.js",
+      "static/chunks/apro-next_pages__error_2da965e7._.js",
+      "static/chunks/turbopack-apro-next_pages__error_90b8f5d2._.js"
+    ]
+  },
+  "devFiles": [],
+  "polyfillFiles": [
+    "static/chunks/33e2c_next_dist_build_polyfills_polyfill-nomodule.js"
+  ],
+  "lowPriorityFiles": [
+    "static/development/_ssgManifest.js",
+    "static/development/_buildManifest.js"
+  ],
+  "rootMainFiles": [
+    "static/chunks/[turbopack]_browser_dev_hmr-client_hmr-client_ts_e0a4871e._.js",
+    "static/chunks/33e2c_next_dist_compiled_react-dom_0d6985d2._.js",
+    "static/chunks/33e2c_next_dist_compiled_react-server-dom-turbopack_87a6bcee._.js",
+    "static/chunks/33e2c_next_dist_compiled_next-devtools_index_f6d17c6b.js",
+    "static/chunks/33e2c_next_dist_compiled_d01fba9c._.js",
+    "static/chunks/33e2c_next_dist_client_807119cb._.js",
+    "static/chunks/33e2c_next_dist_068934f7._.js",
+    "static/chunks/33e2c_@swc_helpers_cjs_082787fd._.js",
+    "static/chunks/apro-next_a0ff3932._.js",
+    "static/chunks/turbopack-apro-next_df5e3147._.js"
+  ]
+}

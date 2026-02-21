@@ -1,0 +1,20 @@
+[00:16:23.132] Server  LOG     ○ Compiling /_error ...
+[00:16:23.508] Server  ERROR   Error: ENOENT: no such file or directory, open '/Users/ohadbentzvi/Downloads/appro-os/apro-next/.next/dev/static/development/_buildManifest.js.tmp.u7mi55j75vf'
+[00:16:23.511] Server  ERROR   Error: ENOENT: no such file or directory, scandir '/Users/ohadbentzvi/Downloads/appro-os/apro-next/app'
+[00:16:23.666] Server  ERROR   Error: Cannot find module '/Users/ohadbentzvi/Downloads/appro-os/apro-next/node_modules/styled-jsx/index.js'
+Require stack:
+- /Users/ohadbentzvi/Downloads/appro-os/node_modules/next/dist/compiled/next-server/pages-turbo.runtime.dev.js
+- /Users/ohadbentzvi/Downloads/appro-os/node_modules/next/dist/server/route-modules/pages/module.compiled.js
+- /Users/ohadbentzvi/Downloads/appro-os/node_modules/next/dist/server/route-modules/pages/vendored/contexts/html-context.js
+- /Users/ohadbentzvi/Downloads/appro-os/node_modules/next/dist/pages/_document.js
+- /Users/ohadbentzvi/Downloads/appro-os/apro-next/node_modules/next/dist/server/load-default-error-components.js
+- /Users/ohadbentzvi/Downloads/appro-os/apro-next/node_modules/next/dist/server/dev/next-dev-server.js
+- /Users/ohadbentzvi/Downloads/appro-os/apro-next/node_modules/next/dist/server/next.js
+- /Users/ohadbentzvi/Downloads/appro-os/apro-next/node_modules/next/dist/server/lib/start-server.js
+[00:16:23.668] Server  ERROR   Error: ENOENT: no such file or directory, scandir '/Users/ohadbentzvi/Downloads/appro-os/apro-next/app'
+[00:16:23.674] Server  ERROR   Error: ENOENT: no such file or directory, scandir '/Users/ohadbentzvi/Downloads/appro-os/apro-next/app'
+[00:16:23.676] Server  ERROR   Error: ENOENT: no such file or directory, scandir '/Users/ohadbentzvi/Downloads/appro-os/apro-next/app'
+[00:16:23.679] Server  ERROR   Error: ENOENT: no such file or directory, scandir '/Users/ohadbentzvi/Downloads/appro-os/apro-next/app'
+[00:16:23.683] Server  ERROR   Error: ENOENT: no such file or directory, scandir '/Users/ohadbentzvi/Downloads/appro-os/apro-next/app'
+[00:16:23.693] Server  ERROR   Error: ENOENT: no such file or directory, scandir '/Users/ohadbentzvi/Downloads/appro-os/apro-next/app'
+[00:16:23.698] Server  ERROR   Error: ENOENT: no such file or directory, scandir '/Users/ohadbentzvi/Downloads/appro-os/apro-next/app'

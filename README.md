@@ -1,20 +1,37 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
-</div>
+# APRO OS Next.js Migration
 
-# Run and deploy your AI Studio app
+This repository represents the SaaS dashboard for APRO OS, recently migrated from a Vite + React SPA architecture to Next.js 14 App Router.
 
-This contains everything you need to run your app locally.
+## Project Structure
 
-View your app in AI Studio: https://ai.studio/apps/c6d7a474-e342-4fd1-8c7c-d40e51eee63b
+This project utilizes the Next.js App Router paradigm:
+* `app/` - Contains the App Router segments (`/dashboard/buildings`, `/dashboard/people`) and API routes.
+* `app/components/` - Reusable UI components including modals and tables.
+* `lib/supabase/` - Contains the Supabase client utilizing `@supabase/supabase-js`.
 
-## Run Locally
+## Getting Started
 
-**Prerequisites:**  Node.js
+First, install dependencies:
+```bash
+npm install
+```
 
+Make sure to create `.env.local` containing your Supabase keys:
+```env
+NEXT_PUBLIC_SUPABASE_URL=...
+NEXT_PUBLIC_SUPABASE_ANON_KEY=...
+```
 
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+Run the development server:
+```bash
+npm run dev
+```
+
+Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+
+## Build for Production
+
+```bash
+npm run build
+npm start
+```
