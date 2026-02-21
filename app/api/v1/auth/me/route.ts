@@ -1,20 +1,19 @@
 import { NextRequest } from 'next/server'
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
-import { cookies } from 'next/headers'
+import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { db, people, appRoles, unitRoles } from '@apro/db'
 import { eq, and, isNull, gte, sql } from 'drizzle-orm'
 import { successResponse, errorResponse } from '@/lib/api/response'
 
 export async function GET(req: NextRequest) {
     try {
-        const supabase = createRouteHandlerClient({ cookies })
-        const { data: { session } } = await supabase.auth.getSession()
+        const supabase = await createSupabaseServerClient()
+        const { data: { user } } = await supabase.auth.getUser()
 
-        if (!session) {
+        if (!user) {
             return errorResponse('Unauthorized', 401)
         }
 
-        const userId = session.user.id
+        const userId = user.id
 
         const [person] = await db.select().from(people).where(eq(people.supabaseUserId, userId))
 

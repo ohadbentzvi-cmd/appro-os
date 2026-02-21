@@ -23,29 +23,44 @@ export async function GET(
             return errorResponse('Person not found', 404)
         }
 
-        const roles = await db
+        const rows = await db
             .select({
                 id: unitRoles.id,
                 roleType: unitRoles.roleType,
                 effectiveFrom: unitRoles.effectiveFrom,
                 effectiveTo: unitRoles.effectiveTo,
                 isFeePayer: unitRoles.isFeePayer,
-                unit: {
-                    id: units.id,
-                    unitNumber: units.unitNumber,
-                    floor: units.floor,
-                    building: {
-                        id: buildings.id,
-                        name: buildings.name,
-                        addressStreet: buildings.addressStreet,
-                        addressCity: buildings.addressCity
-                    }
-                }
+                unitId: units.id,
+                unitNumber: units.unitNumber,
+                floor: units.floor,
+                buildingId: buildings.id,
+                buildingName: buildings.name,
+                addressStreet: buildings.addressStreet,
+                addressCity: buildings.addressCity
             })
             .from(unitRoles)
             .innerJoin(units, eq(units.id, unitRoles.unitId))
             .innerJoin(buildings, eq(buildings.id, units.buildingId))
             .where(eq(unitRoles.personId, id))
+
+        const roles = rows.map(r => ({
+            id: r.id,
+            roleType: r.roleType,
+            effectiveFrom: r.effectiveFrom,
+            effectiveTo: r.effectiveTo,
+            isFeePayer: r.isFeePayer,
+            unit: {
+                id: r.unitId,
+                unitNumber: r.unitNumber,
+                floor: r.floor,
+                building: {
+                    id: r.buildingId,
+                    name: r.buildingName,
+                    addressStreet: r.addressStreet,
+                    addressCity: r.addressCity
+                }
+            }
+        }))
 
         return successResponse({ ...person, roles })
     } catch (e) {

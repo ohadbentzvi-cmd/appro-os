@@ -1,16 +1,24 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import { Building2, Home, Settings, Users } from 'lucide-react';
+import { usePathname, useRouter } from 'next/navigation';
+import { Building2, Home, Settings, Users, LogOut } from 'lucide-react';
+import { createSupabaseBrowserClient } from '@/lib/supabase/client';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
     const pathname = usePathname();
+    const router = useRouter();
+    const supabase = createSupabaseBrowserClient();
 
     const getNavClass = (path: string) => {
         return pathname?.startsWith(path)
             ? "flex items-center gap-3 px-4 py-3 rounded-xl bg-apro-green text-white font-bold transition-all shadow-lg shadow-apro-green/20"
             : "flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/5 text-white/70 hover:text-white transition-all";
+    };
+
+    const handleSignOut = async () => {
+        await supabase.auth.signOut();
+        router.push('/login');
     };
 
     return (
@@ -46,7 +54,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 </nav>
 
                 {/* Bottom Navigation */}
-                <div className="p-4 border-t border-white/10">
+                <div className="p-4 border-t border-white/10 flex flex-col gap-2">
                     <Link
                         href="/dashboard/settings"
                         className={getNavClass("/dashboard/settings") + " group"}
@@ -54,6 +62,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                         <Settings className="w-5 h-5 group-hover:rotate-45 transition-transform" />
                         <span className="font-medium">מערכת</span>
                     </Link>
+                    <button
+                        onClick={handleSignOut}
+                        className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/5 text-white/70 hover:text-white transition-all text-right w-full"
+                    >
+                        <LogOut className="w-5 h-5" />
+                        <span className="font-medium">יציאה</span>
+                    </button>
                 </div>
             </aside>
 

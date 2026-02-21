@@ -10,7 +10,7 @@ export const unitRoles = pgTable('unit_roles', {
     personId: uuid('person_id').notNull()
         .references(() => people.id, { onDelete: 'cascade' }),
     roleType: text('role_type', {
-        enum: ['owner', 'tenant']
+        enum: ['owner', 'tenant', 'guarantor']
     }).notNull(),
     effectiveFrom: date('effective_from').notNull(),
     effectiveTo: date('effective_to'),
