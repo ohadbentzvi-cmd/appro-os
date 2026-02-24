@@ -1,20 +1,19 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { db } from '@apro/db';
-import { sql } from 'drizzle-orm';
+import { chargeGenerationLog } from '@apro/db/src/schema';
+import { sql, eq, and, desc } from 'drizzle-orm';
 
 const generateChargesSchema = z.object({
-    period_month: z.string().regex(/^\d{4}-\d{2}-01$/, "Must be YYYY-MM-01 format"),
-    tenant_id: z.string().uuid()
+    period_month: z.string().regex(/^\d{4}-\d{2}-01$/, "Must be YYYY-MM-01 format")
 });
 
 export async function POST(req: Request) {
     try {
-        // Authenticate via Supabase Service Role Key
-        const authHeader = req.headers.get('authorization');
-        const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+        const authHeader = req.headers.get('x-generate-secret');
+        const expectedSecret = process.env.CHARGE_GENERATION_SECRET;
 
-        if (!authHeader || !authHeader.startsWith('Bearer ') || authHeader.split(' ')[1] !== serviceRoleKey) {
+        if (!authHeader || authHeader !== expectedSecret) {
             return NextResponse.json(
                 { data: null, error: { message: 'Unauthorized' }, meta: null },
                 { status: 401 }
@@ -31,17 +30,50 @@ export async function POST(req: Request) {
             );
         }
 
-        const { period_month, tenant_id } = parsed.data;
+        const { period_month } = parsed.data;
+        const tenant_id = process.env.APRO_TENANT_ID;
+
+        if (!tenant_id) {
+            console.error('APRO_TENANT_ID is missing from environment variables');
+            return NextResponse.json(
+                { data: null, error: { message: 'Internal server error' }, meta: null },
+                { status: 500 }
+            );
+        }
 
         // Call the raw Postgres function
         const result = await db.execute(
             sql`SELECT generate_charges_for_month(${period_month}::date, ${tenant_id}::uuid) AS count`
         );
 
-        const count = result.rows[0]?.count ?? 0;
+        const countStr = (result as any)[0]?.count;
+        const count = typeof countStr === 'number' ? countStr : parseInt(String(countStr || '0'), 10);
+
+        // Update the log inserted by the postgres function to reflect manual trigger
+        // The postgres function inserts with 'pg_cron', we update the most recent one to 'manual_api'
+        const recentLogs = await db.select({ id: chargeGenerationLog.id })
+            .from(chargeGenerationLog)
+            .where(
+                and(
+                    eq(chargeGenerationLog.tenantId, tenant_id),
+                    eq(chargeGenerationLog.periodMonth, period_month)
+                )
+            )
+            .orderBy(desc(chargeGenerationLog.createdAt))
+            .limit(1);
+
+        if (recentLogs.length > 0) {
+            await db.update(chargeGenerationLog)
+                .set({ triggeredBy: 'manual_api' })
+                .where(eq(chargeGenerationLog.id, recentLogs[0].id));
+        }
 
         return NextResponse.json({
-            data: { inserted: count },
+            data: {
+                period_month,
+                charges_created: count,
+                triggered_by: 'manual_api'
+            },
             error: null,
             meta: null
         });

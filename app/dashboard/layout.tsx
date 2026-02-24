@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { Building2, Home, Settings, Users, LogOut } from 'lucide-react';
+import { Building2, Home, Settings, Users, LogOut, CreditCard } from 'lucide-react';
 import { createSupabaseBrowserClient } from '@/lib/supabase/client';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -50,6 +50,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     >
                         <Users className="w-5 h-5" />
                         <span>אנשים</span>
+                    </Link>
+                    <Link
+                        href="/dashboard/payments"
+                        className={getNavClass("/dashboard/payments")}
+                    >
+                        <CreditCard className="w-5 h-5" />
+                        <span>תשלומים</span>
                     </Link>
                 </nav>
 

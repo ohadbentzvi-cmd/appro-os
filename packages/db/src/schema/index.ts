@@ -7,6 +7,7 @@ export * from './app-roles'
 export * from './payment-config'
 export * from './charges'
 export * from './payments'
+export * from './charge-generation-log'
 
 import { tenants } from './tenants'
 import { buildings } from './buildings'
@@ -17,6 +18,7 @@ import { appRoles } from './app-roles'
 import { unitPaymentConfig } from './payment-config'
 import { charges } from './charges'
 import { payments } from './payments'
+import { chargeGenerationLog } from './charge-generation-log'
 
 export type Tenant = typeof tenants.$inferSelect
 export type NewTenant = typeof tenants.$inferInsert
@@ -45,3 +47,5 @@ export type NewCharge = typeof charges.$inferInsert
 export type Payment = typeof payments.$inferSelect
 export type NewPayment = typeof payments.$inferInsert
 
+export type ChargeGenerationLog = typeof chargeGenerationLog.$inferSelect
+export type NewChargeGenerationLog = typeof chargeGenerationLog.$inferInsert

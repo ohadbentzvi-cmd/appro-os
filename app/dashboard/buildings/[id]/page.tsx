@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Building2, ChevronLeft, Loader2, AlertCircle, ChevronRight, Info, Grid, MapPin, Users } from 'lucide-react';
 import { motion } from 'motion/react';
+import GenerateChargesWrapper from '@/app/dashboard/payments/GenerateChargesWrapper';
 
 interface UnitRowData {
     id: string;
@@ -139,6 +140,9 @@ export default function BuildingDetail() {
                             <span>{building.addressStreet}, {building.addressCity}</span>
                         </div>
                     </div>
+                </div>
+                <div>
+                    <GenerateChargesWrapper />
                 </div>
             </div>
 
