@@ -7,6 +7,7 @@ import { Building2, ChevronRight, Home, Users, MapPin, Hash, Plus, Check, FileTe
 import { Building, Unit, Person, UnitRole } from '@/lib/supabase/types';
 import AssignPersonModal from '@/app/components/AssignPersonModal';
 import EditRoleModal from '@/app/components/EditRoleModal';
+import PaymentConfigSection from '@/app/components/PaymentConfigSection';
 
 interface UnitRoleData {
     id: string;
@@ -370,6 +371,9 @@ export default function UnitDetail() {
                     </div>
                 )}
             </div>
+
+            {/* SECTION 4: Payment Config */}
+            <PaymentConfigSection buildingId={id} unitId={unitId} />
 
             {/* Assign Modal */}
             <AssignPersonModal

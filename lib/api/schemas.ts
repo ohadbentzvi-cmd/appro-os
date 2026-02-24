@@ -38,3 +38,14 @@ export const updateUnitRoleSchema = z.object({
     isFeePayer: z.boolean().optional(),
     replaceFeePayer: z.boolean().optional(),
 })
+
+export const paymentConfigSchema = z.object({
+    monthlyAmount: z.number().int().positive().max(1000000), // in agorot
+    effectiveFrom: z.string().regex(/^\d{4}-\d{2}-\d{2}$/)
+        .refine(date => {
+            const dateObj = new Date(date);
+            const oneYearAgo = new Date();
+            oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
+            return dateObj >= oneYearAgo;
+        }, { message: "Date must not be in the past by more than 1 year" })
+})
