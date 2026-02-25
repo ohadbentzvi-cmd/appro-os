@@ -23,6 +23,7 @@ function PaymentsDashboardContent() {
 
     // State
     const [monthlySnapshot, setMonthlySnapshot] = useState<MonthlySnapshot | null>(null);
+    const [missingConfigUnits, setMissingConfigUnits] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState<boolean>(true);
     const [error, setError] = useState<string | null>(null);
 
@@ -31,16 +32,27 @@ function PaymentsDashboardContent() {
         const controller = new AbortController();
         const signal = controller.signal;
 
-        async function fetchSnapshot() {
+        async function fetchData() {
             try {
                 setIsLoading(true);
                 setError(null);
-                const res = await fetch(`/api/v1/charges/monthly-snapshot?period_month=${periodParam}`, { signal });
+
+                const [res, unconfRes] = await Promise.all([
+                    fetch(`/api/v1/charges/monthly-snapshot?period_month=${periodParam}`, { signal }),
+                    fetch(`/api/v1/payments/unconfigured-units`, { signal })
+                ]);
+
                 if (!res.ok) throw new Error('Failed to fetch monthly snapshot');
+                if (!unconfRes.ok) throw new Error('Failed to fetch unconfigured units');
+
                 const json = await res.json();
+                const unconfJson = await unconfRes.json();
+
                 if (json.error) throw new Error(json.error.message);
+                if (unconfJson.error) throw new Error(unconfJson.error.message);
 
                 setMonthlySnapshot(json.data);
+                setMissingConfigUnits(unconfJson.data || []);
             } catch (err: any) {
                 if (err.name === 'AbortError') return;
                 setError(err.message);
@@ -49,7 +61,7 @@ function PaymentsDashboardContent() {
             }
         }
 
-        fetchSnapshot();
+        fetchData();
 
         return () => {
             controller.abort();
@@ -84,10 +96,7 @@ function PaymentsDashboardContent() {
     const filteredBuildings = filterByBuilding(monthlySnapshot, buildingParam);
     const allFilteredUnits = flattenUnits(filteredBuildings, periodParam);
 
-    // Separate out missing config for the warning, and operational standard units for the rest
-    const missingConfigUnits = allFilteredUnits.filter(u => u.status === 'no_config');
     const validUnits = allFilteredUnits.filter(u => u.status !== 'no_config');
-
     const displayUnits = filterByStatus(validUnits, statusParam);
 
     const isCompletelyEmpty = monthlySnapshot &&

@@ -43,7 +43,10 @@ export async function GET(req: Request) {
             hasConfig: unitPaymentConfig.id
         })
             .from(units)
-            .leftJoin(unitPaymentConfig, eq(units.id, unitPaymentConfig.unitId))
+            .leftJoin(unitPaymentConfig, and(
+                eq(units.id, unitPaymentConfig.unitId),
+                isNull(unitPaymentConfig.effectiveUntil)
+            ))
             .where(eq(units.tenantId, tenant_id))
             .orderBy(asc(units.floor), asc(units.unitNumber));
 

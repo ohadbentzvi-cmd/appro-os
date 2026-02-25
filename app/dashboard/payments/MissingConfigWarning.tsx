@@ -2,10 +2,18 @@
 
 import React, { useState } from 'react';
 import { AlertCircle, ChevronDown, ChevronUp } from 'lucide-react';
-import { FlatChargeUnit } from '../../../lib/payments/utils';
+import Link from 'next/link';
+
+interface UnconfiguredUnit {
+    unit_id: string;
+    unit_identifier: string;
+    building_id: string;
+    building_address: string;
+    floor: number;
+}
 
 interface MissingConfigWarningProps {
-    missingConfigUnits: FlatChargeUnit[];
+    missingConfigUnits: UnconfiguredUnit[];
 }
 
 export default function MissingConfigWarning({ missingConfigUnits }: MissingConfigWarningProps) {
@@ -25,7 +33,7 @@ export default function MissingConfigWarning({ missingConfigUnits }: MissingConf
                 <div className="flex-1">
                     <div className="flex justify-between items-center">
                         <h3 className="font-bold text-amber-900">
-                            {missingConfigUnits.length} יחידות חסרות הגדרת תשלום
+                            {missingConfigUnits.length} יחידות ללא הגדרת תשלום חודשי
                         </h3>
                         {expanded ? (
                             <ChevronUp className="w-5 h-5 text-amber-600" />
@@ -43,9 +51,17 @@ export default function MissingConfigWarning({ missingConfigUnits }: MissingConf
                 <div className="mt-4 pt-4 border-t border-amber-200/50">
                     <ul className="space-y-2 max-h-48 overflow-y-auto pr-2 custom-scrollbar">
                         {missingConfigUnits.map(unit => (
-                            <li key={unit.unit_id} className="text-sm text-amber-800 bg-amber-100/50 p-2 rounded-lg flex justify-between">
-                                <span className="font-semibold">דירה {unit.unit_identifier} (קומה {unit.floor})</span>
-                                <span className="text-amber-600/80">{unit.building_address}</span>
+                            <li key={unit.unit_id} className="text-sm text-amber-800 bg-amber-100/50 p-2 rounded-lg flex justify-between items-center">
+                                <div>
+                                    <span className="font-semibold">דירה {unit.unit_identifier} (קומה {unit.floor || '?'})</span>
+                                    <span className="text-amber-600/80 mr-2">— {unit.building_address}</span>
+                                </div>
+                                <Link
+                                    href={`/dashboard/buildings/${unit.building_id}/units/${unit.unit_id}`}
+                                    className="text-amber-700 hover:text-amber-900 font-bold underline underline-offset-4 decoration-amber-300 transition-colors bg-amber-200/50 px-3 py-1 rounded-md"
+                                >
+                                    הגדר תשלום
+                                </Link>
                             </li>
                         ))}
                     </ul>

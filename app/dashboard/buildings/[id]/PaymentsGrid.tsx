@@ -17,7 +17,7 @@ interface ChargeRow {
 
 interface PaymentsGridProps {
     buildingId: string;
-    onRowClick: (chargeId: string, unitIdentifier: string, floor: number) => void;
+    onRowClick: (chargeId: string, unitIdentifier: string, floor: number, amountDue: number, status: string) => void;
 }
 
 export default function PaymentsGrid({ buildingId, onRowClick }: PaymentsGridProps) {
@@ -96,8 +96,37 @@ export default function PaymentsGrid({ buildingId, onRowClick }: PaymentsGridPro
         return `${months[d.getMonth()]} ${d.getFullYear()}`;
     })();
 
+    const noConfigUnits = charges.filter(c => c.status === 'no_config');
+
     return (
         <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+            {noConfigUnits.length > 0 && (
+                <div className="bg-amber-50 rounded-2xl p-5 shadow-sm border border-amber-200 mb-6">
+                    <div className="flex items-start gap-4">
+                        <div className="bg-amber-100 p-2 rounded-xl shrink-0 mt-0.5">
+                            <AlertCircle className="w-6 h-6 text-amber-600" />
+                        </div>
+                        <div>
+                            <h3 className="font-bold text-amber-900 text-lg">
+                                ל-{noConfigUnits.length} יחידות אין תשלום חודשי מוגדר — חיובים לא ייווצרו עבורן
+                            </h3>
+                            <ul className="mt-3 space-y-2">
+                                {noConfigUnits.map(unit => (
+                                    <li key={unit.unit_id}>
+                                        <a
+                                            href={`/dashboard/buildings/${buildingId}/units/${unit.unit_id}`}
+                                            className="text-amber-700 hover:text-amber-900 font-medium underline underline-offset-4 decoration-amber-300 transition-colors"
+                                        >
+                                            דירה {unit.unit_identifier} (קומה {unit.floor})
+                                        </a>
+                                    </li>
+                                ))}
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {currentMonthLabel && (
                 <div className="flex items-center gap-2 mb-6">
                     <TrendingUp className="w-5 h-5 text-apro-green" />
@@ -133,7 +162,7 @@ export default function PaymentsGrid({ buildingId, onRowClick }: PaymentsGridPro
                                     return (
                                         <tr
                                             key={row.unit_id}
-                                            onClick={() => isClickable && onRowClick(row.charge_id!, row.unit_identifier, row.floor)}
+                                            onClick={() => isClickable && onRowClick(row.charge_id!, row.unit_identifier, row.floor, row.amount_due, row.status)}
                                             className={`${isClickable ? 'cursor-pointer hover:bg-gray-50/80 transition-colors group' : 'opacity-60 bg-gray-50/30'}`}
                                         >
                                             <td className="px-6 py-4">
@@ -190,6 +219,6 @@ export default function PaymentsGrid({ buildingId, onRowClick }: PaymentsGridPro
                 <Info className="w-4 h-4" />
                 <span>יחידות בסטטוס "לא מוגדר" אינן משתתפות בתהליך גביית התשלומים החודשי.</span>
             </div>
-        </div>
+        </div >
     );
 }

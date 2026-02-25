@@ -36,7 +36,7 @@ export default function PaymentsSummary({ validUnits }: PaymentsSummaryProps) {
                 </div>
                 <div>
                     <h3 className="text-2xl font-bold text-gray-900">{formatMoney(summary.totalCollected)}</h3>
-                    <p className="text-sm font-semibold text-green-600 mt-1">גבוי החודש</p>
+                    <p className="text-sm font-semibold text-green-600 mt-1">נגבה החודש</p>
                 </div>
             </div>
 

@@ -32,13 +32,21 @@ export default function BuildingDetail() {
     const [drawerUnitIdentifier, setDrawerUnitIdentifier] = React.useState<string>('');
     const [drawerFloor, setDrawerFloor] = React.useState<number>(0);
 
-    const handleRowClick = (chargeId: string, unitIdentifier: string, floor: number) => {
+    const [drawerAmountDue, setDrawerAmountDue] = React.useState<number>(0);
+    const [drawerStatus, setDrawerStatus] = React.useState<string>('pending');
+
+    const handleRowClick = (chargeId: string, unitIdentifier: string, floor: number, amountDue: number, status: string) => {
         setDrawerChargeId(chargeId);
         setDrawerUnitIdentifier(unitIdentifier);
         setDrawerFloor(floor);
+        setDrawerAmountDue(amountDue);
+        setDrawerStatus(status);
     };
 
-    const closeDrawer = () => setDrawerChargeId(null);
+    const closeDrawer = () => {
+        setDrawerChargeId(null);
+        // Optional: clear form state if necessary
+    };
 
     React.useEffect(() => {
         async function fetchBuildingData() {
@@ -373,6 +381,8 @@ export default function BuildingDetail() {
                 chargeId={drawerChargeId}
                 unitIdentifier={drawerUnitIdentifier}
                 floor={drawerFloor}
+                amountDue={drawerAmountDue}
+                status={drawerStatus}
             />
         </div>
     );

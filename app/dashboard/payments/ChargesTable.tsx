@@ -24,6 +24,8 @@ export default function ChargesTable({ displayUnits, buildingParam, statusParam,
     const [drawerFloor, setDrawerFloor] = useState<number>(0);
     const [drawerFeePayerName, setDrawerFeePayerName] = useState<string | null>(null);
     const [drawerFeePayerRole, setDrawerFeePayerRole] = useState<string | null>(null);
+    const [drawerAmountDue, setDrawerAmountDue] = useState<number>(0);
+    const [drawerStatus, setDrawerStatus] = useState<string>('pending');
 
     const formatMoney = (agorot: number) => {
         const ils = Math.round(agorot / 100);
@@ -51,13 +53,15 @@ export default function ChargesTable({ displayUnits, buildingParam, statusParam,
         }
     };
 
-    const handleRowClick = (chargeId: string | null, unitIdentifier: string, floor: number, feePayerName: string | null, feePayerRole: string | null) => {
+    const handleRowClick = (chargeId: string | null, unitIdentifier: string, floor: number, feePayerName: string | null, feePayerRole: string | null, amountDue: number, status: string) => {
         if (!chargeId) return; // Should not trigger for unconfigured rows if they somehow render
         setDrawerChargeId(chargeId);
         setDrawerUnitIdentifier(unitIdentifier);
         setDrawerFloor(floor);
         setDrawerFeePayerName(feePayerName);
         setDrawerFeePayerRole(feePayerRole);
+        setDrawerAmountDue(amountDue);
+        setDrawerStatus(status);
     };
 
     const closeDrawer = () => setDrawerChargeId(null);
@@ -170,7 +174,7 @@ export default function ChargesTable({ displayUnits, buildingParam, statusParam,
                                             {group.rows.map((row, idx) => (
                                                 <tr
                                                     key={`${row.unit_id}-${idx}`}
-                                                    onClick={() => handleRowClick(row.charge_id, row.unit_identifier, row.floor, row.fee_payer_name, row.fee_payer_role)}
+                                                    onClick={() => handleRowClick(row.charge_id, row.unit_identifier, row.floor, row.fee_payer_name, row.fee_payer_role, row.amount_due, row.status)}
                                                     className={`cursor-pointer transition-colors group ${row.is_overdue ? 'bg-red-50 hover:bg-red-100/80' : 'hover:bg-gray-50/80'}`}
                                                 >
                                                     <td className="px-6 py-4">
@@ -224,7 +228,7 @@ export default function ChargesTable({ displayUnits, buildingParam, statusParam,
                                     {displayUnits.map((row, idx) => (
                                         <tr
                                             key={`${row.unit_id}-${idx}`}
-                                            onClick={() => handleRowClick(row.charge_id, row.unit_identifier, row.floor, row.fee_payer_name, row.fee_payer_role)}
+                                            onClick={() => handleRowClick(row.charge_id, row.unit_identifier, row.floor, row.fee_payer_name, row.fee_payer_role, row.amount_due, row.status)}
                                             className={`cursor-pointer transition-colors group ${row.is_overdue ? 'bg-red-50 hover:bg-red-100/80' : 'hover:bg-gray-50/80'}`}
                                         >
                                             <td className="px-6 py-4">
@@ -264,6 +268,8 @@ export default function ChargesTable({ displayUnits, buildingParam, statusParam,
                 chargeId={drawerChargeId}
                 unitIdentifier={drawerUnitIdentifier}
                 floor={drawerFloor}
+                amountDue={drawerAmountDue}
+                status={drawerStatus}
                 feePayerName={drawerFeePayerName}
                 feePayerRole={drawerFeePayerRole}
                 onPaymentSuccess={handlePaymentRecordSuccess}
