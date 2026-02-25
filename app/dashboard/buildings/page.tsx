@@ -4,32 +4,48 @@ import React from 'react';
 import { Building2, ChevronLeft, Loader2, AlertCircle } from 'lucide-react';
 import { motion } from 'motion/react';
 import { useRouter } from 'next/navigation';
+import WarningsBanner from '../payments/MissingConfigWarning';
 
 export default function BuildingsList() {
     const [buildings, setBuildings] = React.useState<any[]>([]);
+    const [warningsData, setWarningsData] = React.useState<any>(null);
     const [loading, setLoading] = React.useState(true);
     const [error, setError] = React.useState<string | null>(null);
     const router = useRouter();
 
     React.useEffect(() => {
-        async function fetchBuildings() {
+        async function fetchData() {
             try {
                 setLoading(true);
                 setError(null);
-                const res = await fetch('/api/v1/buildings');
-                if (!res.ok) throw new Error(`HTTP ${res.status}`);
-                const { data, error } = await res.json();
-                if (error) throw new Error(error);
-                setBuildings(data || []);
+
+                const [buildingsRes, warningsRes] = await Promise.all([
+                    fetch('/api/v1/buildings'),
+                    fetch('/api/v1/warnings')
+                ]);
+
+                if (!buildingsRes.ok) throw new Error(`HTTP ${buildingsRes.status}`);
+                if (!warningsRes.ok) throw new Error(`HTTP ${warningsRes.status}`);
+
+                const [buildingsJson, warningsJson] = await Promise.all([
+                    buildingsRes.json(),
+                    warningsRes.json()
+                ]);
+
+                if (buildingsJson.error) throw new Error(buildingsJson.error);
+                if (warningsJson.error) throw new Error(warningsJson.error.message || warningsJson.error);
+
+                setBuildings(buildingsJson.data || []);
+                setWarningsData(warningsJson.data || null);
             } catch (err: any) {
-                console.error('Error fetching buildings:', err);
+                console.error('Error fetching data:', err);
                 setError('אירעה שגיאה בטעינת הנתונים. נסה לרענן את הדף.');
             } finally {
                 setLoading(false);
             }
         }
 
-        fetchBuildings();
+        fetchData();
     }, []);
 
     return (
@@ -38,6 +54,17 @@ export default function BuildingsList() {
                 <h1 className="text-3xl font-bold text-apro-navy mb-2">ניהול מבנים</h1>
                 <p className="text-gray-500 font-medium">צפייה וניהול של כל הנכסים במערכת</p>
             </header>
+
+            {!loading && !error && (
+                warningsData && warningsData.total > 0 ? (
+                    <WarningsBanner data={warningsData} />
+                ) : (
+                    <div className="flex items-center gap-2 text-apro-green bg-apro-green/5 p-3 rounded-xl border border-apro-green/20 mb-6 font-medium">
+                        <span className="text-lg">✓</span>
+                        אין התראות פעילות
+                    </div>
+                )
+            )}
 
             <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
                 <div className="px-6 py-5 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">

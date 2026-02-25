@@ -5,7 +5,7 @@ import { useSearchParams } from 'next/navigation';
 import PaymentsSummary from './PaymentsSummary';
 import GlobalFilterBar from './GlobalFilterBar';
 import ChargesTable from './ChargesTable';
-import MissingConfigWarning from './MissingConfigWarning';
+
 import { MoreVertical, History, Loader2, AlertCircle, FilePlus } from 'lucide-react';
 import Link from 'next/link';
 import { MonthlySnapshot, BuildingSnapshot, filterByBuilding, flattenUnits, filterByStatus } from '../../../lib/payments/utils';
@@ -23,7 +23,7 @@ function PaymentsDashboardContent() {
 
     // State
     const [monthlySnapshot, setMonthlySnapshot] = useState<MonthlySnapshot | null>(null);
-    const [missingConfigUnits, setMissingConfigUnits] = useState<any[]>([]);
+
     const [isLoading, setIsLoading] = useState<boolean>(true);
     const [error, setError] = useState<string | null>(null);
 
@@ -37,22 +37,15 @@ function PaymentsDashboardContent() {
                 setIsLoading(true);
                 setError(null);
 
-                const [res, unconfRes] = await Promise.all([
-                    fetch(`/api/v1/charges/monthly-snapshot?period_month=${periodParam}`, { signal }),
-                    fetch(`/api/v1/payments/unconfigured-units`, { signal })
-                ]);
+                const res = await fetch(`/api/v1/charges/monthly-snapshot?period_month=${periodParam}`, { signal });
 
                 if (!res.ok) throw new Error('Failed to fetch monthly snapshot');
-                if (!unconfRes.ok) throw new Error('Failed to fetch unconfigured units');
 
                 const json = await res.json();
-                const unconfJson = await unconfRes.json();
 
                 if (json.error) throw new Error(json.error.message);
-                if (unconfJson.error) throw new Error(unconfJson.error.message);
 
                 setMonthlySnapshot(json.data);
-                setMissingConfigUnits(unconfJson.data || []);
             } catch (err: any) {
                 if (err.name === 'AbortError') return;
                 setError(err.message);
@@ -175,7 +168,7 @@ function PaymentsDashboardContent() {
                         <div className={`${isLoading ? 'opacity-50 pointer-events-none' : 'opacity-100 transition-opacity duration-300'}`}>
                             <PaymentsSummary validUnits={validUnits} />
 
-                            <MissingConfigWarning missingConfigUnits={missingConfigUnits} />
+
 
                             <ChargesTable
                                 displayUnits={displayUnits}
