@@ -5,6 +5,8 @@ import GenerateChargesWrapper from '../GenerateChargesWrapper';
 import { FileText, CalendarClock, ChevronRight } from 'lucide-react';
 import Link from 'next/link';
 
+export const dynamic = 'force-dynamic';
+
 const getHebrewMonthYear = (dateArg: Date | string) => {
     const date = new Date(dateArg);
     const months = ["ינואר", "פברואר", "מרץ", "אפריל", "מאי", "יוני", "יולי", "אוגוסט", "ספטמבר", "אוקטובר", "נובמבר", "דצמבר"];
