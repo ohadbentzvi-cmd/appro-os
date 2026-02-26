@@ -5,10 +5,7 @@ import { chargeGenerationLog } from '@apro/db/src/schema';
 import { sql, eq, and, desc } from 'drizzle-orm';
 import * as Sentry from '@sentry/nextjs';
 import { captureApiError } from '@/lib/api/sentry';
-
-const generateChargesSchema = z.object({
-    period_month: z.string().regex(/^\d{4}-\d{2}-01$/, "Must be YYYY-MM-01 format")
-});
+import { generateChargesSchema } from '@/lib/api/schemas';
 
 export async function POST(req: Request) {
     try {

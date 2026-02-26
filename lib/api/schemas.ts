@@ -49,3 +49,19 @@ export const paymentConfigSchema = z.object({
             return dateObj >= oneYearAgo;
         }, { message: "Date must not be in the past by more than 1 year" })
 })
+
+export const generateChargesSchema = z.object({
+    period_month: z.string().regex(/^\d{4}-\d{2}-01$/, "Must be YYYY-MM-01 format")
+});
+
+export const paymentSchema = z.object({
+    amount: z.number().int().min(1),
+    payment_method: z.enum(['cash', 'bank_transfer', 'credit_card', 'portal']),
+    paid_at: z.string()
+        .refine((val) => !isNaN(Date.parse(val)), { message: "Invalid date" })
+        .refine((val) => {
+            if (isNaN(Date.parse(val))) return true; // skip if invalid
+            return new Date(val) <= new Date();
+        }, { message: "Payment date cannot be in the future" }),
+    notes: z.string().max(500).optional().nullable()
+});

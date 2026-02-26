@@ -6,13 +6,7 @@ import { z } from 'zod';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 import * as Sentry from '@sentry/nextjs';
 import { captureApiError } from '@/lib/api/sentry';
-
-const paymentSchema = z.object({
-    amount: z.number().int().min(1),
-    payment_method: z.enum(['cash', 'bank_transfer', 'credit_card', 'portal']),
-    paid_at: z.string().refine((val) => !isNaN(Date.parse(val)), { message: "Invalid date" }),
-    notes: z.string().max(500).optional().nullable()
-});
+import { paymentSchema } from '@/lib/api/schemas';
 
 export async function GET(
     req: Request,
