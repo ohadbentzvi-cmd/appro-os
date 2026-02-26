@@ -8,12 +8,14 @@
     "start": "next start",
     "lint": "eslint",
     "db:generate": "pnpm --filter @apro/db db:generate",
-    "db:push": "pnpm --filter @apro/db db:push"
+    "db:push": "pnpm --filter @apro/db db:push",
+    "db:migrate": "pnpm --filter db drizzle-kit migrate"
   },
   "dependencies": {
     "@apro/db": "workspace:*",
     "@fontsource/assistant": "^5.2.9",
     "@hookform/resolvers": "^5.2.2",
+    "@sentry/nextjs": "^10.40.0",
     "@supabase/auth-helpers-nextjs": "^0.15.0",
     "@supabase/ssr": "^0.8.0",
     "@supabase/supabase-js": "^2.97.0",
