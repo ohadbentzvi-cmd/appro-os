@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server'
 import { db, people, unitRoles, units, buildings } from '@apro/db'
-import { eq } from 'drizzle-orm'
+import { eq, and } from 'drizzle-orm'
 import { successResponse, errorResponse } from '@/lib/api/response'
 import { validateBody } from '@/lib/api/validate'
 import { updatePersonSchema } from '@/lib/api/schemas'
@@ -17,7 +17,10 @@ export async function GET(
             return errorResponse('Invalid Person ID', 400)
         }
 
-        const [person] = await db.select().from(people).where(eq(people.id, id))
+        const tenantId = process.env.APRO_TENANT_ID
+        if (!tenantId) return await errorResponse('Internal server error', 500)
+
+        const [person] = await db.select().from(people).where(and(eq(people.id, id), eq(people.tenantId, tenantId)))
 
         if (!person) {
             return errorResponse('Person not found', 404)
@@ -92,7 +95,7 @@ export async function PATCH(
         if (data.phone !== undefined) updateData.phone = data.phone
 
         if (Object.keys(updateData).length === 0) {
-            const [p] = await db.select().from(people).where(eq(people.id, id))
+            const [p] = await db.select().from(people).where(and(eq(people.id, id), eq(people.tenantId, tenantId)))
             if (!p) return errorResponse('Person not found', 404)
             return successResponse(p)
         }

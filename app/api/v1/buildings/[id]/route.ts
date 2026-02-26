@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server'
 import { db, buildings, units } from '@apro/db'
-import { eq } from 'drizzle-orm'
+import { eq, and } from 'drizzle-orm'
 import { successResponse, errorResponse } from '@/lib/api/response'
 import { validateBody } from '@/lib/api/validate'
 import { updateBuildingSchema } from '@/lib/api/schemas'
@@ -18,7 +18,9 @@ export async function GET(
             return errorResponse('Invalid Building ID', 400)
         }
 
-        const [building] = await db.select().from(buildings).where(eq(buildings.id, id))
+        const tenantId = process.env.APRO_TENANT_ID
+        if (!tenantId) return await errorResponse('Internal server error', 500)
+        const [building] = await db.select().from(buildings).where(and(eq(buildings.id, id), eq(buildings.tenantId, tenantId)))
 
         if (!building) {
             return errorResponse('Building not found', 404)
@@ -54,7 +56,9 @@ export async function PATCH(
         if (data.floors) updateData.numFloors = data.floors
 
         if (Object.keys(updateData).length === 0) {
-            const [b] = await db.select().from(buildings).where(eq(buildings.id, id))
+            const tenantId = process.env.APRO_TENANT_ID
+            if (!tenantId) return await errorResponse('Internal server error', 500)
+            const [b] = await db.select().from(buildings).where(and(eq(buildings.id, id), eq(buildings.tenantId, tenantId)))
             if (!b) return errorResponse('Building not found', 404)
             return successResponse(b)
         }
@@ -88,17 +92,19 @@ export async function DELETE(
             return errorResponse('Invalid Building ID', 400)
         }
 
-        const [building] = await db.select().from(buildings).where(eq(buildings.id, id))
+        const tenantId = process.env.APRO_TENANT_ID
+        if (!tenantId) return await errorResponse('Internal server error', 500)
+        const [building] = await db.select().from(buildings).where(and(eq(buildings.id, id), eq(buildings.tenantId, tenantId)))
         if (!building) {
             return errorResponse('Building not found', 404)
         }
 
-        const unitList = await db.select().from(units).where(eq(units.buildingId, id)).limit(1)
+        const unitList = await db.select().from(units).where(and(eq(units.buildingId, id), eq(units.tenantId, tenantId))).limit(1)
         if (unitList.length > 0) {
             return errorResponse('Building has active units', 400)
         }
 
-        await db.delete(buildings).where(eq(buildings.id, id))
+        await db.delete(buildings).where(and(eq(buildings.id, id), eq(buildings.tenantId, tenantId)))
 
         return successResponse({ deleted: true })
     } catch (e) {

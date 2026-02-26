@@ -9,7 +9,8 @@
     "lint": "eslint",
     "db:generate": "pnpm --filter @apro/db db:generate",
     "db:push": "pnpm --filter @apro/db db:push",
-    "db:migrate": "pnpm --filter db drizzle-kit migrate"
+    "db:migrate": "pnpm --filter db drizzle-kit migrate",
+    "test": "vitest run"
   },
   "dependencies": {
     "@apro/db": "workspace:*",

@@ -11,7 +11,7 @@ async function main() {
 
     const sql = postgres(dbUrl);
 
-    const migrationSql = readFileSync(resolve(__dirname, '../migrations/0004_update_charge_generation.sql'), 'utf-8');
+    const migrationSql = readFileSync(resolve(__dirname, '../migrations/0003_enable_rls.sql'), 'utf-8');
 
     console.log('Applying custom SQL migration...');
     await sql.unsafe(migrationSql);
