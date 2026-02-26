@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import { useWizardState } from './useWizardState';
 
-export function Step4Payments({ wizard }: { wizard: ReturnType<typeof useWizardState> }) {
+export function Step3Payments({ wizard }: { wizard: ReturnType<typeof useWizardState> }) {
     const [bulkAmount, setBulkAmount] = useState<string>('');
 
     const applyBulkAmount = () => {
@@ -66,6 +66,7 @@ export function Step4Payments({ wizard }: { wizard: ReturnType<typeof useWizardS
                     <thead className="bg-gray-50 border-b border-gray-100">
                         <tr>
                             <th className="py-3 px-6 font-bold text-gray-500 text-sm">דירה</th>
+                            <th className="py-3 px-6 font-bold text-gray-500 text-sm">משלם</th>
                             <th className="py-3 px-6 font-bold text-gray-500 text-sm w-[200px]">סכום חודשי (₪)</th>
                             <th className="py-3 px-4 w-16"></th>
                         </tr>
@@ -74,6 +75,17 @@ export function Step4Payments({ wizard }: { wizard: ReturnType<typeof useWizardS
                         {wizard.units.map((unit, index) => (
                             <tr key={index} className="hover:bg-gray-50/50 transition-colors">
                                 <td className="py-3 px-6 text-apro-navy font-bold">{unit.unit_number}</td>
+                                <td className="py-3 px-6">
+                                    <select
+                                        className="w-full bg-white border border-gray-200 rounded-lg py-2 px-3 focus:outline-none focus:ring-1 focus:ring-apro-green transition-all"
+                                        value={unit.fee_payer}
+                                        onChange={(e) => wizard.updateUnit(index, { fee_payer: e.target.value as 'none' | 'owner' | 'tenant' })}
+                                    >
+                                        <option value="owner">בעל הנכס</option>
+                                        <option value="tenant">דייר</option>
+                                        <option value="none">לא מוגדר</option>
+                                    </select>
+                                </td>
                                 <td className="py-3 px-6">
                                     <div className="relative">
                                         <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 font-bold text-sm">₪</span>
@@ -100,7 +112,7 @@ export function Step4Payments({ wizard }: { wizard: ReturnType<typeof useWizardS
                         ))}
                         {wizard.units.length === 0 && (
                             <tr>
-                                <td colSpan={3} className="py-8 text-center text-gray-400 font-bold">לא הוגדרו דירות.</td>
+                                <td colSpan={4} className="py-8 text-center text-gray-400 font-bold">לא הוגדרו דירות.</td>
                             </tr>
                         )}
                     </tbody>

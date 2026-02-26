@@ -7,8 +7,7 @@ interface StepIndicatorProps {
 
 const steps = [
     'פרטי בניין',
-    'דירות',
-    'דיירים ובעלים',
+    'דירות ודיירים',
     'תשלומים',
 ];
 
