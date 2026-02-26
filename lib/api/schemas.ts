@@ -17,7 +17,7 @@ export const updateUnitSchema = createUnitSchema.partial()
 
 export const createPersonSchema = z.object({
     fullName: z.string().min(1),
-    email: z.string().email(),
+    email: z.string().email().nullable().optional(),
     phone: z.string().optional(),
 })
 

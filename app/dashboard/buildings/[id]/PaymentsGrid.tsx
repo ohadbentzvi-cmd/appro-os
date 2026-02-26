@@ -99,40 +99,12 @@ export default function PaymentsGrid({ buildingId, onRowClick }: PaymentsGridPro
     const noConfigUnits = charges.filter(c => c.status === 'no_config');
 
     return (
-        <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-            {noConfigUnits.length > 0 && (
-                <div className="bg-amber-50 rounded-2xl p-5 shadow-sm border border-amber-200 mb-6">
-                    <div className="flex items-start gap-4">
-                        <div className="bg-amber-100 p-2 rounded-xl shrink-0 mt-0.5">
-                            <AlertCircle className="w-6 h-6 text-amber-600" />
-                        </div>
-                        <div>
-                            <h3 className="font-bold text-amber-900 text-lg">
-                                ל-{noConfigUnits.length} יחידות אין תשלום חודשי מוגדר — חיובים לא ייווצרו עבורן
-                            </h3>
-                            <ul className="mt-3 space-y-2">
-                                {noConfigUnits.map(unit => (
-                                    <li key={unit.unit_id}>
-                                        <a
-                                            href={`/dashboard/buildings/${buildingId}/units/${unit.unit_id}`}
-                                            className="text-amber-700 hover:text-amber-900 font-medium underline underline-offset-4 decoration-amber-300 transition-colors"
-                                        >
-                                            דירה {unit.unit_identifier} (קומה {unit.floor})
-                                        </a>
-                                    </li>
-                                ))}
-                            </ul>
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            {currentMonthLabel && (
-                <div className="flex items-center gap-2 mb-6">
-                    <TrendingUp className="w-5 h-5 text-apro-green" />
-                    <h2 className="text-xl font-bold text-apro-navy">תמונת מצב - {currentMonthLabel}</h2>
-                </div>
-            )}
+        <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">            {currentMonthLabel && (
+            <div className="flex items-center gap-2 mb-6">
+                <TrendingUp className="w-5 h-5 text-apro-green" />
+                <h2 className="text-xl font-bold text-apro-navy">תמונת מצב - {currentMonthLabel}</h2>
+            </div>
+        )}
 
             <div className="border border-gray-100 rounded-2xl overflow-hidden bg-white shadow-sm mb-6">
                 <div className="overflow-x-auto">

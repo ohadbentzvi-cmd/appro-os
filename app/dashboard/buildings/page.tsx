@@ -1,16 +1,18 @@
 'use client';
 
-import React from 'react';
-import { Building2, ChevronLeft, Loader2, AlertCircle } from 'lucide-react';
+import React, { useState } from 'react';
+import { Building2, ChevronLeft, Loader2, AlertCircle, Plus } from 'lucide-react';
 import { motion } from 'motion/react';
 import { useRouter } from 'next/navigation';
 import WarningsBanner from '../payments/MissingConfigWarning';
+import OnboardingWizardModal from '@/app/components/buildings/onboarding-wizard';
 
 export default function BuildingsList() {
     const [buildings, setBuildings] = React.useState<any[]>([]);
     const [warningsData, setWarningsData] = React.useState<any>(null);
     const [loading, setLoading] = React.useState(true);
     const [error, setError] = React.useState<string | null>(null);
+    const [isWizardOpen, setIsWizardOpen] = useState(false);
     const router = useRouter();
 
     React.useEffect(() => {
@@ -50,9 +52,18 @@ export default function BuildingsList() {
 
     return (
         <>
-            <header className="mb-10">
-                <h1 className="text-3xl font-bold text-apro-navy mb-2">ניהול מבנים</h1>
-                <p className="text-gray-500 font-medium">צפייה וניהול של כל הנכסים במערכת</p>
+            <header className="mb-10 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                    <h1 className="text-3xl font-bold text-apro-navy mb-2">ניהול מבנים</h1>
+                    <p className="text-gray-500 font-medium">צפייה וניהול של כל הנכסים במערכת</p>
+                </div>
+                <button
+                    onClick={() => setIsWizardOpen(true)}
+                    className="flex items-center gap-2 bg-apro-green text-white px-6 py-3 rounded-xl font-bold hover:bg-emerald-600 transition-colors shadow-sm shadow-apro-green/20"
+                >
+                    <Plus className="w-5 h-5" />
+                    הוסף בניין
+                </button>
             </header>
 
             {!loading && !error && (
@@ -157,6 +168,11 @@ export default function BuildingsList() {
                     </div>
                 )}
             </div>
+
+            <OnboardingWizardModal
+                isOpen={isWizardOpen}
+                onClose={() => setIsWizardOpen(false)}
+            />
         </>
     );
 }
