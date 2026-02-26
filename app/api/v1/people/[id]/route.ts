@@ -65,7 +65,7 @@ export async function GET(
         return successResponse({ ...person, roles })
     } catch (e) {
         console.error('Person GET error', e)
-        return errorResponse('Internal server error', 500)
+        return await errorResponse('Internal server error', 500, e)
     }
 }
 
@@ -110,6 +110,6 @@ export async function PATCH(
         return successResponse(updated)
     } catch (e) {
         console.error('Person PATCH error', e)
-        return errorResponse('Internal server error', 500)
+        return await errorResponse('Internal server error', 500, e)
     }
 }

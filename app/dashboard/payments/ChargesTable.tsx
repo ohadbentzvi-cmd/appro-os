@@ -164,7 +164,7 @@ export default function ChargesTable({ displayUnits, buildingParam, statusParam,
                                                     <div className="flex justify-between items-center">
                                                         <h3 className="font-bold text-apro-navy">{group.address}</h3>
                                                         <div className="text-sm font-medium text-gray-500">
-                                                            {group.rows.length} חיובים · גבוי <span className="font-bold text-green-600">{formatMoney(group.totalPaid)}</span> · יתרה <span className="font-bold text-amber-600">{formatMoney(group.totalDue - group.totalPaid)}</span>
+                                                            {group.rows.length} חיובים · נגבו <span className="font-bold text-green-600">{formatMoney(group.totalPaid)}</span> · יתרה <span className="font-bold text-amber-600">{formatMoney(group.totalDue - group.totalPaid)}</span>
                                                         </div>
                                                     </div>
                                                 </td>

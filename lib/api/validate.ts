@@ -10,6 +10,6 @@ export async function validateBody<T>(
         const data = schema.parse(body)
         return { data }
     } catch (e) {
-        return { error: errorResponse('Invalid request body', 400) }
+        return { error: await errorResponse('Invalid request body', 400) }
     }
 }

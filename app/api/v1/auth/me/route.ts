@@ -41,6 +41,6 @@ export async function GET(req: NextRequest) {
         })
     } catch (e) {
         console.error('Auth GET me error', e)
-        return errorResponse('Internal server error', 500)
+        return await errorResponse('Internal server error', 500, e)
     }
 }

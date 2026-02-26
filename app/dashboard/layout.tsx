@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { Building2, Home, Settings, Users, LogOut, CreditCard } from 'lucide-react';
 import { createSupabaseBrowserClient } from '@/lib/supabase/client';
+import * as Sentry from '@sentry/nextjs';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
     const pathname = usePathname();
@@ -81,7 +82,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
             {/* Main Content Area */}
             <main className="flex-grow mr-64 p-8 lg:p-12">
-                {children}
+                <Sentry.ErrorBoundary fallback={<p>An error has occurred in the dashboard component.</p>}>
+                    {children}
+                </Sentry.ErrorBoundary>
             </main>
         </div>
     );

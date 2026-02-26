@@ -3,6 +3,8 @@ import { z } from 'zod';
 import { db } from '@apro/db';
 import { chargeGenerationLog } from '@apro/db/src/schema';
 import { sql, eq, and, desc } from 'drizzle-orm';
+import * as Sentry from '@sentry/nextjs';
+import { captureApiError } from '@/lib/api/sentry';
 
 const generateChargesSchema = z.object({
     period_month: z.string().regex(/^\d{4}-\d{2}-01$/, "Must be YYYY-MM-01 format")
@@ -40,6 +42,8 @@ export async function POST(req: Request) {
                 { status: 500 }
             );
         }
+
+        Sentry.addBreadcrumb({ category: 'finance', message: `Manual charge generation triggered for ${period_month}`, level: 'info' });
 
         // Call the raw Postgres function
         const result = await db.execute(
@@ -80,6 +84,7 @@ export async function POST(req: Request) {
 
     } catch (error: any) {
         console.error('Error generating charges:', error);
+        await captureApiError(error);
         return NextResponse.json(
             { data: null, error: { message: error.message || 'Internal server error' }, meta: null },
             { status: 500 }

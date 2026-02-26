@@ -54,6 +54,6 @@ export async function POST(
         return successResponse({ invited: true })
     } catch (e) {
         console.error('Invite POST error', e)
-        return errorResponse('Internal server error', 500)
+        return await errorResponse('Internal server error', 500, e)
     }
 }

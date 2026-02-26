@@ -94,6 +94,6 @@ export async function PATCH(
         return successResponse(updated)
     } catch (e) {
         console.error('Unit Role PATCH error', e)
-        return errorResponse('Internal server error', 500)
+        return await errorResponse('Internal server error', 500, e)
     }
 }

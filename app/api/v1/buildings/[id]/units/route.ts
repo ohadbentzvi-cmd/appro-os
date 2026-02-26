@@ -55,7 +55,7 @@ export async function GET(
         return successResponse(items)
     } catch (e) {
         console.error('Units GET error', e)
-        return errorResponse('Internal server error', 500)
+        return await errorResponse('Internal server error', 500)
     }
 }
 
@@ -78,7 +78,7 @@ export async function POST(
         const tenantId = process.env.APRO_TENANT_ID
         if (!tenantId) {
             console.error('APRO_TENANT_ID is not configured')
-            return errorResponse('Internal server error', 500)
+            return await errorResponse('Internal server error', 500)
         }
 
         const [newUnit] = await db
@@ -94,6 +94,6 @@ export async function POST(
         return successResponse(newUnit)
     } catch (e) {
         console.error('Units POST error', e)
-        return errorResponse('Internal server error', 500)
+        return await errorResponse('Internal server error', 500)
     }
 }

@@ -34,6 +34,6 @@ export async function GET(req: NextRequest) {
         return successResponse(logs);
     } catch (e: any) {
         console.error('Generation log GET error', e);
-        return errorResponse('Internal server error', 500);
+        return await errorResponse('Internal server error', 500, e);
     }
 }

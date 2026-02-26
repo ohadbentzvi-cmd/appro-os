@@ -4,6 +4,7 @@ import { eq, and, isNull, desc, sql } from 'drizzle-orm'
 import { successResponse, errorResponse } from '@/lib/api/response'
 import { validateBody } from '@/lib/api/validate'
 import { paymentConfigSchema } from '@/lib/api/schemas'
+import * as Sentry from '@sentry/nextjs';
 
 export async function GET(
     req: NextRequest,
@@ -39,7 +40,7 @@ export async function GET(
         return successResponse(config || null)
     } catch (e) {
         console.error('Payment Config GET error', e)
-        return errorResponse('Internal server error', 500)
+        return await errorResponse('Internal server error', 500)
     }
 }
 
@@ -60,9 +61,11 @@ export async function POST(
 
         const data = valid.data
         const tenantId = process.env.APRO_TENANT_ID
+
+        Sentry.addBreadcrumb({ category: 'finance', message: `Setting config for unit ${unitId}`, level: 'info' });
         if (!tenantId) {
             console.error('APRO_TENANT_ID is not configured')
-            return errorResponse('Internal server error', 500)
+            return await errorResponse('Internal server error', 500)
         }
 
         const [unit] = await db.select({ id: units.id }).from(units).where(
@@ -105,6 +108,6 @@ export async function POST(
         return successResponse(newConfig)
     } catch (e) {
         console.error('Payment Config POST error', e)
-        return errorResponse('Internal server error', 500)
+        return await errorResponse('Internal server error', 500)
     }
 }

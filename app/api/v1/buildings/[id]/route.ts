@@ -27,7 +27,7 @@ export async function GET(
         return successResponse(building)
     } catch (e) {
         console.error('Building GET error', e)
-        return errorResponse('Internal server error', 500)
+        return await errorResponse('Internal server error', 500, e)
     }
 }
 
@@ -72,7 +72,7 @@ export async function PATCH(
         return successResponse(updated)
     } catch (e) {
         console.error('Building PATCH error', e)
-        return errorResponse('Internal server error', 500)
+        return await errorResponse('Internal server error', 500, e)
     }
 }
 
@@ -103,6 +103,6 @@ export async function DELETE(
         return successResponse({ deleted: true })
     } catch (e) {
         console.error('Building DELETE error', e)
-        return errorResponse('Internal server error', 500)
+        return await errorResponse('Internal server error', 500, e)
     }
 }

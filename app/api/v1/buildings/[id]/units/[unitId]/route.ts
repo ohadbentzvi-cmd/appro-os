@@ -49,7 +49,7 @@ export async function GET(
         return successResponse({ ...unit, roles })
     } catch (e) {
         console.error('Unit GET error', e)
-        return errorResponse('Internal server error', 500)
+        return await errorResponse('Internal server error', 500, e)
     }
 }
 
@@ -95,6 +95,6 @@ export async function PATCH(
         return successResponse(updated)
     } catch (e) {
         console.error('Unit PATCH error', e)
-        return errorResponse('Internal server error', 500)
+        return await errorResponse('Internal server error', 500, e)
     }
 }

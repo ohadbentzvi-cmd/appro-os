@@ -24,7 +24,7 @@ export async function POST(
         const tenantId = process.env.APRO_TENANT_ID
         if (!tenantId) {
             console.error('APRO_TENANT_ID is not configured')
-            return errorResponse('Internal server error', 500)
+            return await errorResponse('Internal server error', 500)
         }
 
         if (data.isFeePayer) {
@@ -79,6 +79,6 @@ export async function POST(
         return successResponse(newRole)
     } catch (e) {
         console.error('Unit Role POST error', e)
-        return errorResponse('Internal server error', 500)
+        return await errorResponse('Internal server error', 500)
     }
 }

@@ -35,7 +35,7 @@ export async function GET(req: NextRequest) {
         return successResponse(items, buildMeta(items, limit))
     } catch (e) {
         console.error('Buildings GET error', e)
-        return errorResponse('Internal server error', 500)
+        return await errorResponse('Internal server error', 500)
     }
 }
 
@@ -48,7 +48,7 @@ export async function POST(req: NextRequest) {
         const tenantId = process.env.APRO_TENANT_ID
         if (!tenantId) {
             console.error('APRO_TENANT_ID is not configured')
-            return errorResponse('Internal server error', 500)
+            return await errorResponse('Internal server error', 500)
         }
 
         const [newBuilding] = await db
@@ -66,6 +66,6 @@ export async function POST(req: NextRequest) {
         return successResponse(newBuilding)
     } catch (e) {
         console.error('Buildings POST error', e)
-        return errorResponse('Internal server error', 500)
+        return await errorResponse('Internal server error', 500)
     }
 }

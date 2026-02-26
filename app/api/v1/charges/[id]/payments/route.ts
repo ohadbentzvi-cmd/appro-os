@@ -4,6 +4,8 @@ import { payments, charges, people } from '@apro/db/src/schema';
 import { eq, and, desc } from 'drizzle-orm';
 import { z } from 'zod';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
+import * as Sentry from '@sentry/nextjs';
+import { captureApiError } from '@/lib/api/sentry';
 
 const paymentSchema = z.object({
     amount: z.number().int().min(1),
@@ -60,6 +62,7 @@ export async function GET(
 
     } catch (error: any) {
         console.error('Error fetching charge payments:', error);
+        await captureApiError(error);
         return NextResponse.json(
             { data: null, error: { message: error.message || 'Internal server error' }, meta: null },
             { status: 500 }
@@ -87,6 +90,8 @@ export async function POST(
         }
 
         const { amount, payment_method, paid_at, notes } = parsed.data;
+
+        Sentry.addBreadcrumb({ category: 'finance', message: `Adding payment of ${amount} to charge ${chargeId}`, level: 'info' });
 
         // Ensure paid_at is not in the future
         const paidAtDate = new Date(paid_at);
@@ -149,6 +154,7 @@ export async function POST(
 
     } catch (error: any) {
         console.error('Error creating payment:', error);
+        await captureApiError(error);
         return NextResponse.json({ data: null, error: { message: error.message || 'Internal server error' }, meta: null }, { status: 500 });
     }
 }
