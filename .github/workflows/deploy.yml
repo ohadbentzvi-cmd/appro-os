@@ -20,4 +20,9 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm lint
       - run: pnpm test
-      - run: pnpm build
+      - name: Build project
+        run: pnpm build
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: "https://missing-in-action.supabase.co"
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: "mock-anon-key-preventing-build-crash"
+          APRO_TENANT_ID: "00000000-0000-0000-0000-000000000000"
