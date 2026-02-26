@@ -1,23 +1,31 @@
 import * as Sentry from '@sentry/nextjs';
-import { createSupabaseServerClient } from '@/lib/supabase/server';
+import * as jose from 'jose';
 
-export async function captureApiError(error: any) {
-    try {
-        const supabase = await createSupabaseServerClient();
-        const { data: { user } } = await supabase.auth.getUser();
-        const tenant_id = process.env.APRO_TENANT_ID;
+export async function captureApiError(
+    error: unknown,
+    request?: Request
+) {
+    Sentry.withScope(async (scope) => {
+        // Extract tenant_id from env — always available, no network call
+        scope.setTag('tenant_id', process.env.APRO_TENANT_ID ?? 'unknown');
 
-        Sentry.withScope((scope) => {
-            if (user) {
-                scope.setUser({ id: user.id });
+        // Extract user_id from JWT cookie synchronously if request is available
+        if (request) {
+            try {
+                const cookieHeader = request.headers.get('cookie') ?? '';
+                const match = cookieHeader.match(/sb-[^=]+-auth-token=([^;]+)/);
+                if (match) {
+                    // Decode without verification — we're just reading metadata, not authenticating
+                    const decoded = jose.decodeJwt(decodeURIComponent(match[1]));
+                    if (decoded && decoded.sub) {
+                        scope.setUser({ id: decoded.sub });
+                    }
+                }
+            } catch {
+                // Cookie parsing failed — continue without user context, don't throw
             }
-            if (tenant_id) {
-                scope.setTag('tenant_id', tenant_id);
-            }
-            Sentry.captureException(error);
-        });
-    } catch (fallbackError) {
-        // If getting user fails, still capture the original error
+        }
+
         Sentry.captureException(error);
-    }
+    });
 }

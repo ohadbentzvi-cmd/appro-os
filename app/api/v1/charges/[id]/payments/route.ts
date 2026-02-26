@@ -56,7 +56,7 @@ export async function GET(
 
     } catch (error: any) {
         console.error('Error fetching charge payments:', error);
-        await captureApiError(error);
+        captureApiError(error, req).catch(() => { });
         return NextResponse.json(
             { data: null, error: { message: error.message || 'Internal server error' }, meta: null },
             { status: 500 }
@@ -148,7 +148,7 @@ export async function POST(
 
     } catch (error: any) {
         console.error('Error creating payment:', error);
-        await captureApiError(error);
+        captureApiError(error, req).catch(() => { });
         return NextResponse.json({ data: null, error: { message: error.message || 'Internal server error' }, meta: null }, { status: 500 });
     }
 }

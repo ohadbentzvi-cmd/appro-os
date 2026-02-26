@@ -81,7 +81,7 @@ export async function POST(req: Request) {
 
     } catch (error: any) {
         console.error('Error generating charges:', error);
-        await captureApiError(error);
+        captureApiError(error, req).catch(() => { });
         return NextResponse.json(
             { data: null, error: { message: error.message || 'Internal server error' }, meta: null },
             { status: 500 }

@@ -11,7 +11,7 @@ Sentry.init({
   // https://docs.sentry.io/platforms/javascript/guides/nextjs/configuration/options/#sendDefaultPii
   sendDefaultPii: true,
 
-  environment: process.env.NODE_ENV === "production" ? "production" : "development",
+  environment: process.env.NODE_ENV,
   enabled: process.env.NODE_ENV === "production",
   ignoreErrors: [
     "NEXT_NOT_FOUND",

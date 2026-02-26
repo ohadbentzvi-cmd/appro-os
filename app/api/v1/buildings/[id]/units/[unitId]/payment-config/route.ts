@@ -18,8 +18,13 @@ export async function GET(
             return errorResponse('Invalid ID', 400)
         }
 
+        const tenantId = process.env.APRO_TENANT_ID;
+        if (!tenantId) {
+            return errorResponse('Internal server error', 500)
+        }
+
         const [unit] = await db.select({ id: units.id }).from(units).where(
-            and(eq(units.id, unitId), eq(units.buildingId, buildingId))
+            and(eq(units.id, unitId), eq(units.buildingId, buildingId), eq(units.tenantId, tenantId))
         )
 
         if (!unit) {
@@ -31,6 +36,7 @@ export async function GET(
             .where(
                 and(
                     eq(unitPaymentConfig.unitId, unitId),
+                    eq(unitPaymentConfig.tenantId, tenantId),
                     isNull(unitPaymentConfig.effectiveUntil)
                 )
             )
@@ -40,7 +46,7 @@ export async function GET(
         return successResponse(config || null)
     } catch (e) {
         console.error('Payment Config GET error', e)
-        return await errorResponse('Internal server error', 500)
+        return await errorResponse('Internal server error', 500, e, req)
     }
 }
 
@@ -65,11 +71,11 @@ export async function POST(
         Sentry.addBreadcrumb({ category: 'finance', message: `Setting config for unit ${unitId}`, level: 'info' });
         if (!tenantId) {
             console.error('APRO_TENANT_ID is not configured')
-            return await errorResponse('Internal server error', 500)
+            return await errorResponse('Internal server error', 500, new Error('APRO_TENANT_ID is not configured'), req)
         }
 
         const [unit] = await db.select({ id: units.id }).from(units).where(
-            and(eq(units.id, unitId), eq(units.buildingId, buildingId))
+            and(eq(units.id, unitId), eq(units.buildingId, buildingId), eq(units.tenantId, tenantId))
         )
 
         if (!unit) {
@@ -88,6 +94,7 @@ export async function POST(
                 .where(
                     and(
                         eq(unitPaymentConfig.unitId, unitId),
+                        eq(unitPaymentConfig.tenantId, tenantId),
                         isNull(unitPaymentConfig.effectiveUntil)
                     )
                 );
@@ -108,6 +115,6 @@ export async function POST(
         return successResponse(newConfig)
     } catch (e) {
         console.error('Payment Config POST error', e)
-        return await errorResponse('Internal server error', 500)
+        return await errorResponse('Internal server error', 500, e, req)
     }
 }

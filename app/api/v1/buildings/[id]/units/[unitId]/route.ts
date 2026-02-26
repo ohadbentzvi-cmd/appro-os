@@ -12,6 +12,9 @@ export async function GET(
     try {
         const { id: buildingId, unitId } = await params
 
+        const tenantId = process.env.APRO_TENANT_ID;
+        if (!tenantId) return errorResponse('Internal server error', 500)
+
         // validate uuid
         const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
         if (!uuidRegex.test(buildingId) || !uuidRegex.test(unitId)) {
@@ -19,7 +22,7 @@ export async function GET(
         }
 
         const [unit] = await db.select().from(units).where(
-            and(eq(units.id, unitId), eq(units.buildingId, buildingId))
+            and(eq(units.id, unitId), eq(units.buildingId, buildingId), eq(units.tenantId, tenantId))
         )
 
         if (!unit) {
@@ -60,6 +63,9 @@ export async function PATCH(
     try {
         const { id: buildingId, unitId } = await params
 
+        const tenantId = process.env.APRO_TENANT_ID;
+        if (!tenantId) return errorResponse('Internal server error', 500)
+
         const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
         if (!uuidRegex.test(buildingId) || !uuidRegex.test(unitId)) {
             return errorResponse('Invalid ID', 400)
@@ -76,7 +82,7 @@ export async function PATCH(
 
         if (Object.keys(updateData).length === 0) {
             const [u] = await db.select().from(units).where(
-                and(eq(units.id, unitId), eq(units.buildingId, buildingId))
+                and(eq(units.id, unitId), eq(units.buildingId, buildingId), eq(units.tenantId, tenantId))
             )
             if (!u) return errorResponse('Unit not found', 404)
             return successResponse(u)
@@ -85,7 +91,7 @@ export async function PATCH(
         const [updated] = await db
             .update(units)
             .set(updateData)
-            .where(and(eq(units.id, unitId), eq(units.buildingId, buildingId)))
+            .where(and(eq(units.id, unitId), eq(units.buildingId, buildingId), eq(units.tenantId, tenantId)))
             .returning()
 
         if (!updated) {

@@ -33,7 +33,7 @@ export async function GET(req: Request) {
         if (buildingId && buildingId !== 'all') {
             const buildingUnitsQuery = db.select({ id: units.id })
                 .from(units)
-                .where(eq(units.buildingId, buildingId));
+                .where(and(eq(units.buildingId, buildingId), eq(units.tenantId, tenant_id)));
 
             conditions.push(inArray(charges.unitId, buildingUnitsQuery));
         }

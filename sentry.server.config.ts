@@ -11,8 +11,24 @@ Sentry.init({
   // https://docs.sentry.io/platforms/javascript/guides/nextjs/configuration/options/#sendDefaultPii
   sendDefaultPii: true,
 
-  environment: process.env.NODE_ENV === "production" ? "production" : "development",
+  environment: process.env.NODE_ENV,
   enabled: process.env.NODE_ENV === "production",
+  beforeSend(event) {
+    if (event.request?.data) {
+      const scrubKeys = ['name', 'fullName', 'firstName', 'lastName', 'email', 'phone', 'phoneNumber']
+      const data = typeof event.request.data === 'string'
+        ? (() => { try { return JSON.parse(event.request.data as string) } catch { return {} } })()
+        : event.request.data
+
+      if (data && typeof data === 'object') {
+        scrubKeys.forEach(key => {
+          if (key in data) (data as any)[key] = '[Filtered]'
+        })
+        event.request.data = data
+      }
+    }
+    return event
+  },
   ignoreErrors: [
     "NEXT_NOT_FOUND",
     "NEXT_REDIRECT"

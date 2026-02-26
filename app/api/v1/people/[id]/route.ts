@@ -84,6 +84,9 @@ export async function PATCH(
             return errorResponse('Invalid Person ID', 400)
         }
 
+        const tenantId = process.env.APRO_TENANT_ID
+        if (!tenantId) return await errorResponse('Internal server error', 500)
+
         const valid = await validateBody(req, updatePersonSchema)
         if ('error' in valid) return valid.error
 
@@ -103,7 +106,7 @@ export async function PATCH(
         const [updated] = await db
             .update(people)
             .set(updateData)
-            .where(eq(people.id, id))
+            .where(and(eq(people.id, id), eq(people.tenantId, tenantId)))
             .returning()
 
         if (!updated) {

@@ -29,6 +29,20 @@
       "when": 1772094675250,
       "tag": "0003_enable_rls",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1772119142581,
+      "tag": "0004_fix_rls_insert_policies",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1772119423174,
+      "tag": "0005_add_tenant_id_indexes",
+      "breakpoints": true
     }
   ]
 }

@@ -60,11 +60,27 @@ describe('Payment Pure Functions', () => {
             expect(result[0].status).toBe('partial');
         });
 
-        it('returns only rows where is_overdue === true for "overdue"', () => {
-            const result = filterByStatus(mockUnits, 'overdue');
-            expect(result.length).toBe(1);
-            expect(result[0].is_overdue).toBe(true);
-            expect(result[0].status).not.toBe('overdue'); // Ensure 'overdue' relies on boolean, not status
+        it('includes rows where is_overdue is true regardless of status value for "overdue"', () => {
+            const units = [
+                { unit_id: '1', status: 'partial', is_overdue: true, amount_due: 100, amount_paid: 50 } as FlatChargeUnit,
+                { unit_id: '2', status: 'pending', is_overdue: false, amount_due: 100, amount_paid: 0 } as FlatChargeUnit,
+                { unit_id: '3', status: 'paid', is_overdue: false, amount_due: 100, amount_paid: 100 } as FlatChargeUnit,
+            ];
+
+            const result = filterByStatus(units, 'overdue');
+
+            expect(result).toHaveLength(1);
+            expect(result[0].unit_id).toBe('1');
+            result.forEach(u => {
+                expect(u.status).not.toBe('overdue');
+            });
+        });
+
+        it('does not include rows where status is pending but is_overdue is false', () => {
+            const units = [
+                { unit_id: '1', status: 'pending', is_overdue: false, amount_due: 100, amount_paid: 0 } as FlatChargeUnit,
+            ];
+            expect(filterByStatus(units, 'overdue')).toHaveLength(0);
         });
     });
 

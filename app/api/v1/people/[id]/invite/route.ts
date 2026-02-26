@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { db, people, appRoles } from '@apro/db'
-import { eq } from 'drizzle-orm'
+import { eq, and } from 'drizzle-orm'
 import { successResponse, errorResponse } from '@/lib/api/response'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 
@@ -17,6 +17,11 @@ export async function POST(
             return errorResponse('Unauthorized', 401)
         }
 
+        const tenantId = process.env.APRO_TENANT_ID;
+        if (!tenantId) {
+            return errorResponse('Internal server error', 500)
+        }
+
         const [inviterRole] = await db.select().from(appRoles).where(eq(appRoles.supabaseUserId, user.id))
 
         if (!inviterRole || inviterRole.role !== 'manager') {
@@ -30,7 +35,7 @@ export async function POST(
             return errorResponse('Invalid Person ID', 400)
         }
 
-        const [person] = await db.select().from(people).where(eq(people.id, id))
+        const [person] = await db.select().from(people).where(and(eq(people.id, id), eq(people.tenantId, tenantId)))
         if (!person) {
             return errorResponse('Person not found', 404)
         }
