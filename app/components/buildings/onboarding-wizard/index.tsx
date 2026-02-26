@@ -5,9 +5,8 @@ import { X } from 'lucide-react';
 import { useWizardState } from './useWizardState';
 import { StepIndicator } from './StepIndicator';
 import { Step1BuildingDetails } from './Step1BuildingDetails';
-import { Step2Units } from './Step2Units';
-import { Step3People } from './Step3People';
-import { Step4Payments } from './Step4Payments';
+import { Step2UnitsPeople } from './Step2UnitsPeople';
+import { Step3Payments } from './Step3Payments';
 import { useRouter } from 'next/navigation';
 
 interface OnboardingWizardModalProps {
@@ -107,21 +106,22 @@ export default function OnboardingWizardModal({ isOpen, onClose }: OnboardingWiz
                 </div>
 
                 {/* Scrollable Body */}
-                <div className="flex-1 overflow-y-auto p-6 md:p-8 bg-gray-50/30">
-                    <StepIndicator currentStep={wizard.currentStep} />
+                <div className={`flex-1 flex flex-col p-6 md:p-8 bg-gray-50/30 ${wizard.currentStep === 2 ? 'overflow-hidden' : 'overflow-y-auto'}`}>
+                    <div className="shrink-0">
+                        <StepIndicator currentStep={wizard.currentStep} />
+                    </div>
 
-                    <div className="max-w-4xl mx-auto">
+                    <div className="max-w-4xl mx-auto flex flex-col flex-1 min-h-0 w-full">
                         {wizard.error && (
                             <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl text-red-800 text-center font-bold">
                                 {wizard.error}
                             </div>
                         )}
 
-                        <div className={wizard.isSubmitting ? 'opacity-50 pointer-events-none' : ''}>
+                        <div className={`flex flex-col flex-1 min-h-0 w-full ${wizard.isSubmitting ? 'opacity-50 pointer-events-none' : ''}`}>
                             {wizard.currentStep === 1 && <Step1BuildingDetails wizard={wizard} />}
-                            {wizard.currentStep === 2 && <Step2Units wizard={wizard} />}
-                            {wizard.currentStep === 3 && <Step3People wizard={wizard} />}
-                            {wizard.currentStep === 4 && <Step4Payments wizard={wizard} />}
+                            {wizard.currentStep === 2 && <Step2UnitsPeople wizard={wizard} />}
+                            {wizard.currentStep === 3 && <Step3Payments wizard={wizard} />}
                         </div>
                     </div>
                 </div>
@@ -136,7 +136,7 @@ export default function OnboardingWizardModal({ isOpen, onClose }: OnboardingWiz
                         הקודם
                     </button>
 
-                    {wizard.currentStep < 4 ? (
+                    {wizard.currentStep < 3 ? (
                         <button
                             onClick={wizard.nextStep}
                             disabled={!isStepValid(wizard) || wizard.isSubmitting}
@@ -179,9 +179,8 @@ function isStepValid(wizard: any) {
         if (wizard.units.some((u: any) => !u.unit_number || u.unit_number.trim() === '')) return false;
         // Check for duplicate unit numbers
         const numbers = wizard.units.map((u: any) => u.unit_number.trim().toLowerCase());
-        return new Set(numbers).size === numbers.length;
-    }
-    if (wizard.currentStep === 3) {
+        if (new Set(numbers).size !== numbers.length) return false;
+        // Validate phones
         const phoneRegex = /^(05\d{8}|0[23489]\d{7})$/;
         for (const unit of wizard.units) {
             if (unit.owner?.phone && !unit.owner.phone.match(phoneRegex)) return false;
@@ -189,5 +188,5 @@ function isStepValid(wizard: any) {
         }
         return true;
     }
-    return true; // Step 4 has no hard blockers
+    return true; // Step 3 has no hard blockers
 }
