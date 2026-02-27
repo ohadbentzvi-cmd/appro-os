@@ -70,7 +70,8 @@ export async function GET(req: Request) {
         const activeFeePayers = await db.select({
             unitId: unitRoles.unitId,
             roleType: unitRoles.roleType,
-            fullName: people.fullName
+            fullName: people.fullName,
+            phone: people.phone
         })
             .from(unitRoles)
             .innerJoin(people, eq(unitRoles.personId, people.id))
@@ -139,7 +140,8 @@ export async function GET(req: Request) {
                 due_date: charge?.dueDate || null,
                 is_overdue: is_overdue,
                 fee_payer_name: feePayer?.fullName || null,
-                fee_payer_role: translatedRole
+                fee_payer_role: translatedRole,
+                fee_payer_phone: feePayer?.phone || null
             });
         }
 

@@ -10,6 +10,7 @@ export interface ChargeUnit {
     is_overdue: boolean;
     fee_payer_name: string | null;
     fee_payer_role: string | null;
+    fee_payer_phone: string | null;
 }
 
 export interface BuildingSnapshot {

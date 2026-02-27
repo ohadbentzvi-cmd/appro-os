@@ -23,6 +23,7 @@ interface ChargeDetailDrawerProps {
     status?: string;
     feePayerName?: string | null;
     feePayerRole?: string | null;
+    feePayerPhone?: string | null;
     onPaymentSuccess?: (newStatus: string, newAmountPaid: number) => void;
 }
 
@@ -36,6 +37,7 @@ export default function ChargeDetailDrawer({
     status = 'pending',
     feePayerName,
     feePayerRole,
+    feePayerPhone,
     onPaymentSuccess
 }: ChargeDetailDrawerProps) {
     const router = useRouter();
@@ -202,6 +204,7 @@ export default function ChargeDetailDrawer({
                                         <p className="text-sm text-gray-700 font-medium">
                                             <span className="text-gray-400 ml-1">משלם:</span>
                                             {feePayerName ? `${feePayerName} — ${feePayerRole}` : feePayerRole}
+                                            {feePayerPhone && <span className="text-gray-500 mr-2 text-xs" dir="ltr">{feePayerPhone}</span>}
                                         </p>
                                     )}
                                 </div>

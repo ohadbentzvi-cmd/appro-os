@@ -73,6 +73,9 @@ function PaymentsDashboardContent() {
                 if (unit.charge_id === chargeId) {
                     unit.status = newStatus;
                     unit.amount_paid = newAmountPaid;
+                    if (newStatus === 'paid') {
+                        unit.is_overdue = false;
+                    }
                     found = true;
                     break;
                 }
