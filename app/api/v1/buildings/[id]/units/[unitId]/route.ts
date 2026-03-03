@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server'
 import { db, units, unitRoles, people } from '@apro/db'
 import { eq, and, desc } from 'drizzle-orm'
 import { successResponse, errorResponse } from '@/lib/api/response'
+import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { validateBody } from '@/lib/api/validate'
 import { updateUnitSchema } from '@/lib/api/schemas'
 
@@ -12,8 +13,13 @@ export async function GET(
     try {
         const { id: buildingId, unitId } = await params
 
-        const tenantId = process.env.APRO_TENANT_ID;
-        if (!tenantId) return errorResponse('Internal server error', 500)
+        const supabase = await createSupabaseServerClient()
+        const { data: { user } } = await supabase.auth.getUser()
+        const tenantId = user?.app_metadata?.tenant_id as string | undefined
+
+        if (!tenantId) {
+            return await errorResponse('Unauthorized', 401)
+        }
 
         // validate uuid
         const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
@@ -63,8 +69,13 @@ export async function PATCH(
     try {
         const { id: buildingId, unitId } = await params
 
-        const tenantId = process.env.APRO_TENANT_ID;
-        if (!tenantId) return errorResponse('Internal server error', 500)
+        const supabase = await createSupabaseServerClient()
+        const { data: { user } } = await supabase.auth.getUser()
+        const tenantId = user?.app_metadata?.tenant_id as string | undefined
+
+        if (!tenantId) {
+            return await errorResponse('Unauthorized', 401)
+        }
 
         const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
         if (!uuidRegex.test(buildingId) || !uuidRegex.test(unitId)) {

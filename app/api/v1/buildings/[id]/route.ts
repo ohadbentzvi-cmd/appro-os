@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server'
 import { db, buildings, units } from '@apro/db'
 import { eq, and } from 'drizzle-orm'
 import { successResponse, errorResponse } from '@/lib/api/response'
+import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { validateBody } from '@/lib/api/validate'
 import { updateBuildingSchema } from '@/lib/api/schemas'
 
@@ -18,8 +19,13 @@ export async function GET(
             return errorResponse('Invalid Building ID', 400)
         }
 
-        const tenantId = process.env.APRO_TENANT_ID
-        if (!tenantId) return await errorResponse('Internal server error', 500)
+        const supabase = await createSupabaseServerClient()
+        const { data: { user } } = await supabase.auth.getUser()
+        const tenantId = user?.app_metadata?.tenant_id as string | undefined
+
+        if (!tenantId) {
+            return await errorResponse('Unauthorized', 401)
+        }
         const [building] = await db.select().from(buildings).where(and(eq(buildings.id, id), eq(buildings.tenantId, tenantId)))
 
         if (!building) {
@@ -56,17 +62,30 @@ export async function PATCH(
         if (data.floors) updateData.numFloors = data.floors
 
         if (Object.keys(updateData).length === 0) {
-            const tenantId = process.env.APRO_TENANT_ID
-            if (!tenantId) return await errorResponse('Internal server error', 500)
+            const supabase = await createSupabaseServerClient()
+            const { data: { user } } = await supabase.auth.getUser()
+            const tenantId = user?.app_metadata?.tenant_id as string | undefined
+
+            if (!tenantId) {
+                return await errorResponse('Unauthorized', 401)
+            }
             const [b] = await db.select().from(buildings).where(and(eq(buildings.id, id), eq(buildings.tenantId, tenantId)))
             if (!b) return errorResponse('Building not found', 404)
             return successResponse(b)
         }
 
+        const supabase = await createSupabaseServerClient()
+        const { data: { user } } = await supabase.auth.getUser()
+        const tenantId = user?.app_metadata?.tenant_id as string | undefined
+
+        if (!tenantId) {
+            return await errorResponse('Unauthorized', 401)
+        }
+
         const [updated] = await db
             .update(buildings)
             .set(updateData)
-            .where(eq(buildings.id, id))
+            .where(and(eq(buildings.id, id), eq(buildings.tenantId, tenantId)))
             .returning()
 
         if (!updated) {
@@ -92,8 +111,13 @@ export async function DELETE(
             return errorResponse('Invalid Building ID', 400)
         }
 
-        const tenantId = process.env.APRO_TENANT_ID
-        if (!tenantId) return await errorResponse('Internal server error', 500)
+        const supabase = await createSupabaseServerClient()
+        const { data: { user } } = await supabase.auth.getUser()
+        const tenantId = user?.app_metadata?.tenant_id as string | undefined
+
+        if (!tenantId) {
+            return await errorResponse('Unauthorized', 401)
+        }
         const [building] = await db.select().from(buildings).where(and(eq(buildings.id, id), eq(buildings.tenantId, tenantId)))
         if (!building) {
             return errorResponse('Building not found', 404)

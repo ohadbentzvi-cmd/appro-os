@@ -1,7 +1,8 @@
 import { NextRequest } from 'next/server'
 import { db, units, unitRoles } from '@apro/db'
-import { eq, sql } from 'drizzle-orm'
+import { eq, and, sql } from 'drizzle-orm'
 import { successResponse, errorResponse } from '@/lib/api/response'
+import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { validateBody } from '@/lib/api/validate'
 import { createUnitSchema } from '@/lib/api/schemas'
 
@@ -15,6 +16,14 @@ export async function GET(
         const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
         if (!uuidRegex.test(buildingId)) {
             return errorResponse('Invalid Building ID', 400)
+        }
+
+        const supabase = await createSupabaseServerClient()
+        const { data: { user } } = await supabase.auth.getUser()
+        const tenantId = user?.app_metadata?.tenant_id as string | undefined
+
+        if (!tenantId) {
+            return await errorResponse('Unauthorized', 401)
         }
 
         const items = await db
@@ -50,7 +59,7 @@ export async function GET(
         )`
             })
             .from(units)
-            .where(eq(units.buildingId, buildingId))
+            .where(and(eq(units.buildingId, buildingId), eq(units.tenantId, tenantId)))
 
         return successResponse(items)
     } catch (e) {
@@ -75,10 +84,12 @@ export async function POST(
         if ('error' in valid) return valid.error
 
         const data = valid.data
-        const tenantId = process.env.APRO_TENANT_ID
+        const supabase = await createSupabaseServerClient()
+        const { data: { user } } = await supabase.auth.getUser()
+        const tenantId = user?.app_metadata?.tenant_id as string | undefined
+
         if (!tenantId) {
-            console.error('APRO_TENANT_ID is not configured')
-            return await errorResponse('Internal server error', 500)
+            return await errorResponse('Unauthorized', 401)
         }
 
         const [newUnit] = await db

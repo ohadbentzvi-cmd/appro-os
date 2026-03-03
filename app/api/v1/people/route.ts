@@ -2,29 +2,39 @@ import { NextRequest } from 'next/server'
 import { db, people, unitRoles } from '@apro/db'
 import { eq, sql, desc, lt, and, ilike, or } from 'drizzle-orm'
 import { successResponse, errorResponse } from '@/lib/api/response'
+import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { validateBody } from '@/lib/api/validate'
 import { createPersonSchema } from '@/lib/api/schemas'
 import { parseCursor, buildMeta } from '@/lib/api/pagination'
 
 export async function GET(req: NextRequest) {
     try {
+        const supabase = await createSupabaseServerClient()
+        const { data: { user } } = await supabase.auth.getUser()
+        const tenantId = user?.app_metadata?.tenant_id as string | undefined
+
+        if (!tenantId) {
+            return await errorResponse('Unauthorized', 401)
+        }
+
         const { cursor, limit } = parseCursor(req.nextUrl.searchParams)
         const search = req.nextUrl.searchParams.get('search')
 
-        const filters = []
+        const filters = [eq(people.tenantId, tenantId)]
 
         if (cursor) {
             filters.push(lt(people.id, cursor))
         }
 
         if (search) {
-            filters.push(
-                or(
-                    ilike(people.fullName, `%${search}%`),
-                    ilike(people.email, `%${search}%`),
-                    ilike(people.phone, `%${search}%`)
-                )
+            const searchFilter = or(
+                ilike(people.fullName, `%${search}%`),
+                ilike(people.email, `%${search}%`),
+                ilike(people.phone, `%${search}%`)
             )
+            if (searchFilter) {
+                filters.push(searchFilter)
+            }
         }
 
         const items = await db
@@ -43,7 +53,7 @@ export async function GET(req: NextRequest) {
         )`
             })
             .from(people)
-            .where(filters.length > 0 ? and(...filters) : undefined)
+            .where(and(...(filters as any[])))
             .limit(limit)
             .orderBy(desc(people.id))
 
@@ -60,10 +70,12 @@ export async function POST(req: NextRequest) {
         if ('error' in valid) return valid.error
 
         const data = valid.data
-        const tenantId = process.env.APRO_TENANT_ID
+        const supabase = await createSupabaseServerClient()
+        const { data: { user } } = await supabase.auth.getUser()
+        const tenantId = user?.app_metadata?.tenant_id as string | undefined
+
         if (!tenantId) {
-            console.error('APRO_TENANT_ID is not configured')
-            return await errorResponse('Internal server error', 500)
+            return await errorResponse('Unauthorized', 401)
         }
 
         const [newPerson] = await db

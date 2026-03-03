@@ -3,6 +3,7 @@ import { db } from '@apro/db';
 import { payments, charges } from '@apro/db/src/schema';
 import { eq, and } from 'drizzle-orm';
 import { z } from 'zod';
+import { createSupabaseServerClient } from '@/lib/supabase/server';
 
 const paymentSchema = z.object({
     amount: z.number().int().min(1),
@@ -16,9 +17,12 @@ export async function PUT(
     { params }: { params: Promise<{ id: string, paymentId: string }> }
 ) {
     try {
-        const tenant_id = process.env.APRO_TENANT_ID;
+        const supabase = await createSupabaseServerClient()
+        const { data: { user } } = await supabase.auth.getUser()
+        const tenant_id = user?.app_metadata?.tenant_id as string | undefined
+
         if (!tenant_id) {
-            return NextResponse.json({ data: null, error: { message: 'Internal server error' }, meta: null }, { status: 500 });
+            return NextResponse.json({ data: null, error: { message: 'Unauthorized' }, meta: null }, { status: 401 });
         }
 
         const resolvedParams = await params;

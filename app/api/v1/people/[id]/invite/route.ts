@@ -17,9 +17,10 @@ export async function POST(
             return errorResponse('Unauthorized', 401)
         }
 
-        const tenantId = process.env.APRO_TENANT_ID;
+        const tenantId = user?.app_metadata?.tenant_id as string | undefined
+
         if (!tenantId) {
-            return errorResponse('Internal server error', 500)
+            return await errorResponse('Unauthorized', 401)
         }
 
         const [inviterRole] = await db.select().from(appRoles).where(eq(appRoles.supabaseUserId, user.id))

@@ -13,14 +13,17 @@ export async function GET(
     { params }: { params: Promise<{ id: string }> }
 ) {
     try {
-        const tenant_id = process.env.APRO_TENANT_ID;
+        const supabase = await createSupabaseServerClient()
+        const { data: { user } } = await supabase.auth.getUser()
+        const tenant_id = user?.app_metadata?.tenant_id as string | undefined
+
         const resolvedParams = await params;
         const chargeId = resolvedParams.id;
 
         if (!tenant_id) {
             return NextResponse.json(
-                { data: null, error: { message: 'Internal server error' }, meta: null },
-                { status: 500 }
+                { data: null, error: { message: 'Unauthorized' }, meta: null },
+                { status: 401 }
             );
         }
 
@@ -69,9 +72,12 @@ export async function POST(
     { params }: { params: Promise<{ id: string }> }
 ) {
     try {
-        const tenant_id = process.env.APRO_TENANT_ID;
+        const supabase = await createSupabaseServerClient()
+        const { data: { user: auth_user } } = await supabase.auth.getUser()
+        const tenant_id = auth_user?.app_metadata?.tenant_id as string | undefined
+
         if (!tenant_id) {
-            return NextResponse.json({ data: null, error: { message: 'Internal server error' }, meta: null }, { status: 500 });
+            return NextResponse.json({ data: null, error: { message: 'Unauthorized' }, meta: null }, { status: 401 });
         }
 
         const resolvedParams = await params;
@@ -110,10 +116,8 @@ export async function POST(
         // Get authenticated user
         let recordedBy: string | null = null;
         try {
-            const supabase = await createSupabaseServerClient();
-            const { data: { user } } = await supabase.auth.getUser();
-            if (user) {
-                const [person] = await db.select({ id: people.id }).from(people).where(eq(people.supabaseUserId, user.id));
+            if (auth_user) {
+                const [person] = await db.select({ id: people.id }).from(people).where(eq(people.supabaseUserId, auth_user.id));
                 if (person) {
                     recordedBy = person.id;
                 }

@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server'
 import { db, people, unitRoles, units, buildings } from '@apro/db'
 import { eq, and } from 'drizzle-orm'
 import { successResponse, errorResponse } from '@/lib/api/response'
+import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { validateBody } from '@/lib/api/validate'
 import { updatePersonSchema } from '@/lib/api/schemas'
 
@@ -17,8 +18,13 @@ export async function GET(
             return errorResponse('Invalid Person ID', 400)
         }
 
-        const tenantId = process.env.APRO_TENANT_ID
-        if (!tenantId) return await errorResponse('Internal server error', 500)
+        const supabase = await createSupabaseServerClient()
+        const { data: { user } } = await supabase.auth.getUser()
+        const tenantId = user?.app_metadata?.tenant_id as string | undefined
+
+        if (!tenantId) {
+            return await errorResponse('Unauthorized', 401)
+        }
 
         const [person] = await db.select().from(people).where(and(eq(people.id, id), eq(people.tenantId, tenantId)))
 
@@ -84,8 +90,13 @@ export async function PATCH(
             return errorResponse('Invalid Person ID', 400)
         }
 
-        const tenantId = process.env.APRO_TENANT_ID
-        if (!tenantId) return await errorResponse('Internal server error', 500)
+        const supabase = await createSupabaseServerClient()
+        const { data: { user } } = await supabase.auth.getUser()
+        const tenantId = user?.app_metadata?.tenant_id as string | undefined
+
+        if (!tenantId) {
+            return await errorResponse('Unauthorized', 401)
+        }
 
         const valid = await validateBody(req, updatePersonSchema)
         if ('error' in valid) return valid.error

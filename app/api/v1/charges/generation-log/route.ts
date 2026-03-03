@@ -19,9 +19,9 @@ export async function GET(req: NextRequest) {
             return errorResponse('Forbidden: only managers can view logs', 403);
         }
 
-        const tenantId = process.env.APRO_TENANT_ID;
+        const tenantId = user.app_metadata?.tenant_id as string | undefined;
         if (!tenantId) {
-            return errorResponse('Internal server error: Missing tenant ID', 500);
+            return errorResponse('Unauthorized: Missing tenant ID', 401);
         }
 
         const logs = await db

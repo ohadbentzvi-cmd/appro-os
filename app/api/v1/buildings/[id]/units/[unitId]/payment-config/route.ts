@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server'
 import { db, unitPaymentConfig, units } from '@apro/db'
 import { eq, and, isNull, desc, sql } from 'drizzle-orm'
 import { successResponse, errorResponse } from '@/lib/api/response'
+import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { validateBody } from '@/lib/api/validate'
 import { paymentConfigSchema } from '@/lib/api/schemas'
 import * as Sentry from '@sentry/nextjs';
@@ -18,9 +19,12 @@ export async function GET(
             return errorResponse('Invalid ID', 400)
         }
 
-        const tenantId = process.env.APRO_TENANT_ID;
+        const supabase = await createSupabaseServerClient()
+        const { data: { user } } = await supabase.auth.getUser()
+        const tenantId = user?.app_metadata?.tenant_id as string | undefined
+
         if (!tenantId) {
-            return errorResponse('Internal server error', 500)
+            return await errorResponse('Unauthorized', 401)
         }
 
         const [unit] = await db.select({ id: units.id }).from(units).where(
@@ -66,12 +70,13 @@ export async function POST(
         if ('error' in valid) return valid.error
 
         const data = valid.data
-        const tenantId = process.env.APRO_TENANT_ID
+        const supabase = await createSupabaseServerClient()
+        const { data: { user } } = await supabase.auth.getUser()
+        const tenantId = user?.app_metadata?.tenant_id as string | undefined
 
         Sentry.addBreadcrumb({ category: 'finance', message: `Setting config for unit ${unitId}`, level: 'info' });
         if (!tenantId) {
-            console.error('APRO_TENANT_ID is not configured')
-            return await errorResponse('Internal server error', 500, new Error('APRO_TENANT_ID is not configured'), req)
+            return await errorResponse('Unauthorized', 401)
         }
 
         const [unit] = await db.select({ id: units.id }).from(units).where(

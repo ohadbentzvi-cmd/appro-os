@@ -3,6 +3,7 @@ import { db, buildings, units, people, unitRoles, unitPaymentConfig } from '@apr
 import { eq, and } from 'drizzle-orm';
 import * as Sentry from '@sentry/nextjs';
 import { successResponse, errorResponse } from '@/lib/api/response';
+import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { captureApiError } from '@/lib/api/sentry';
 import { validateBody } from '@/lib/api/validate';
 import { buildingOnboardSchema } from '@/lib/api/schemas/buildingOnboard';
@@ -13,10 +14,12 @@ export async function POST(req: NextRequest) {
         if ('error' in valid) return valid.error;
 
         const data = valid.data;
-        const tenantId = process.env.APRO_TENANT_ID;
+        const supabase = await createSupabaseServerClient()
+        const { data: { user } } = await supabase.auth.getUser()
+        const tenantId = user?.app_metadata?.tenant_id as string | undefined
+
         if (!tenantId) {
-            console.error('APRO_TENANT_ID is not configured');
-            return await errorResponse('Internal server error', 500);
+            return await errorResponse('Unauthorized', 401)
         }
 
         Sentry.addBreadcrumb({
@@ -134,7 +137,6 @@ export async function POST(req: NextRequest) {
         // Explicitly exclude PII from Sentry context
         Sentry.withScope((scope) => {
             scope.setTag('operation', 'building_onboard');
-            scope.setExtra('tenant_id', process.env.APRO_TENANT_ID);
             // No full_name, phone, or wizard data is passed to Sentry
             captureApiError(e, req).catch(() => { });
         });
