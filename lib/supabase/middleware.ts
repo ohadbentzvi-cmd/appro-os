@@ -1,5 +1,5 @@
 import { createServerClient } from '@supabase/ssr'
-import type { NextRequest, NextResponse } from 'next/server'
+import { type NextRequest, NextResponse } from 'next/server'
 
 export function createSupabaseMiddlewareClient(
     request: NextRequest,
@@ -10,14 +10,17 @@ export function createSupabaseMiddlewareClient(
         process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
         {
             cookies: {
-                get: (name) => request.cookies.get(name)?.value,
-                set: (name, value, options) => {
-                    request.cookies.set({ name, value, ...options })
-                    response.cookies.set({ name, value, ...options })
+                getAll() {
+                    return request.cookies.getAll()
                 },
-                remove: (name, options) => {
-                    request.cookies.set({ name, value: '', ...options })
-                    response.cookies.set({ name, value: '', ...options })
+                setAll(cookiesToSet) {
+                    cookiesToSet.forEach(({ name, value, options }) => request.cookies.set(name, value))
+                    response = NextResponse.next({
+                        request,
+                    })
+                    cookiesToSet.forEach(({ name, value, options }) =>
+                        response.cookies.set(name, value, options)
+                    )
                 },
             },
         }
