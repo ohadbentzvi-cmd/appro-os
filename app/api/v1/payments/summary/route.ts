@@ -2,13 +2,11 @@ import { NextResponse } from 'next/server';
 import { db } from '@apro/db';
 import { charges, units } from '@apro/db/src/schema';
 import { eq, and, inArray } from 'drizzle-orm';
-import { createSupabaseServerClient } from '@/lib/supabase/server';
+import { getServerUser } from '@/lib/supabase/server';
 
 export async function GET(req: Request) {
     try {
-        const supabase = await createSupabaseServerClient()
-        const { data: { user } } = await supabase.auth.getUser()
-        const tenant_id = user?.app_metadata?.tenant_id as string | undefined
+        const { tenantId: tenant_id } = await getServerUser()
 
         if (!tenant_id) {
             return NextResponse.json(

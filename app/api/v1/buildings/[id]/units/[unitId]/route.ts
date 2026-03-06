@@ -2,7 +2,7 @@ import { NextRequest } from 'next/server'
 import { db, units, unitRoles, people } from '@apro/db'
 import { eq, and, desc } from 'drizzle-orm'
 import { successResponse, errorResponse } from '@/lib/api/response'
-import { createSupabaseServerClient } from '@/lib/supabase/server'
+import { getServerUser } from '@/lib/supabase/server'
 import { validateBody } from '@/lib/api/validate'
 import { updateUnitSchema } from '@/lib/api/schemas'
 
@@ -13,9 +13,7 @@ export async function GET(
     try {
         const { id: buildingId, unitId } = await params
 
-        const supabase = await createSupabaseServerClient()
-        const { data: { user } } = await supabase.auth.getUser()
-        const tenantId = user?.app_metadata?.tenant_id as string | undefined
+        const { tenantId } = await getServerUser()
 
         if (!tenantId) {
             return await errorResponse('Unauthorized', 401)
@@ -69,9 +67,7 @@ export async function PATCH(
     try {
         const { id: buildingId, unitId } = await params
 
-        const supabase = await createSupabaseServerClient()
-        const { data: { user } } = await supabase.auth.getUser()
-        const tenantId = user?.app_metadata?.tenant_id as string | undefined
+        const { tenantId } = await getServerUser()
 
         if (!tenantId) {
             return await errorResponse('Unauthorized', 401)

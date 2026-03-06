@@ -2,7 +2,7 @@ import { NextRequest } from 'next/server'
 import { db, unitPaymentConfig, units } from '@apro/db'
 import { eq, and, isNull, desc, sql } from 'drizzle-orm'
 import { successResponse, errorResponse } from '@/lib/api/response'
-import { createSupabaseServerClient } from '@/lib/supabase/server'
+import { getServerUser } from '@/lib/supabase/server'
 import { validateBody } from '@/lib/api/validate'
 import { paymentConfigSchema } from '@/lib/api/schemas'
 import * as Sentry from '@sentry/nextjs';
@@ -19,9 +19,7 @@ export async function GET(
             return errorResponse('Invalid ID', 400)
         }
 
-        const supabase = await createSupabaseServerClient()
-        const { data: { user } } = await supabase.auth.getUser()
-        const tenantId = user?.app_metadata?.tenant_id as string | undefined
+        const { tenantId } = await getServerUser()
 
         if (!tenantId) {
             return await errorResponse('Unauthorized', 401)
@@ -70,9 +68,7 @@ export async function POST(
         if ('error' in valid) return valid.error
 
         const data = valid.data
-        const supabase = await createSupabaseServerClient()
-        const { data: { user } } = await supabase.auth.getUser()
-        const tenantId = user?.app_metadata?.tenant_id as string | undefined
+        const { tenantId } = await getServerUser()
 
         Sentry.addBreadcrumb({ category: 'finance', message: `Setting config for unit ${unitId}`, level: 'info' });
         if (!tenantId) {

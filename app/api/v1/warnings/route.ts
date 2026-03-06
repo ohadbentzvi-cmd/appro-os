@@ -2,15 +2,13 @@ import { NextResponse, NextRequest } from 'next/server';
 import { db } from '@apro/db';
 import { units, buildings, unitPaymentConfig, unitRoles } from '@apro/db/src/schema';
 import { eq, and, isNull } from 'drizzle-orm';
-import { createSupabaseServerClient } from '@/lib/supabase/server';
+import { getServerUser } from '@/lib/supabase/server';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(req: NextRequest) {
     try {
-        const supabase = await createSupabaseServerClient()
-        const { data: { user } } = await supabase.auth.getUser()
-        const tenant_id = user?.app_metadata?.tenant_id as string | undefined
+        const { tenantId: tenant_id } = await getServerUser()
 
         if (!tenant_id) {
             return NextResponse.json({ data: null, error: { message: 'Unauthorized' }, meta: null }, { status: 401 });

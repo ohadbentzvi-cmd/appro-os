@@ -2,16 +2,14 @@ import { NextRequest } from 'next/server'
 import { db, buildings, units } from '@apro/db'
 import { eq, sql, desc, lt, and } from 'drizzle-orm'
 import { successResponse, errorResponse } from '@/lib/api/response'
-import { createSupabaseServerClient } from '@/lib/supabase/server'
+import { getServerUser } from '@/lib/supabase/server'
 import { validateBody } from '@/lib/api/validate'
 import { createBuildingSchema } from '@/lib/api/schemas'
 import { parseCursor, buildMeta } from '@/lib/api/pagination'
 
 export async function GET(req: NextRequest) {
     try {
-        const supabase = await createSupabaseServerClient()
-        const { data: { user } } = await supabase.auth.getUser()
-        const tenantId = user?.app_metadata?.tenant_id as string | undefined
+        const { tenantId } = await getServerUser()
 
         if (!tenantId) {
             return await errorResponse('Unauthorized', 401)
@@ -54,9 +52,7 @@ export async function POST(req: NextRequest) {
         if ('error' in valid) return valid.error
 
         const data = valid.data
-        const supabase = await createSupabaseServerClient()
-        const { data: { user } } = await supabase.auth.getUser()
-        const tenantId = user?.app_metadata?.tenant_id as string | undefined
+        const { tenantId } = await getServerUser()
 
         if (!tenantId) {
             return await errorResponse('Unauthorized', 401)

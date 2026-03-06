@@ -3,7 +3,7 @@ import { db } from '@apro/db';
 import { payments, charges, people } from '@apro/db/src/schema';
 import { eq, and, desc } from 'drizzle-orm';
 import { z } from 'zod';
-import { createSupabaseServerClient } from '@/lib/supabase/server';
+import { getServerUser } from '@/lib/supabase/server';
 import * as Sentry from '@sentry/nextjs';
 import { captureApiError } from '@/lib/api/sentry';
 import { paymentSchema } from '@/lib/api/schemas';
@@ -13,9 +13,7 @@ export async function GET(
     { params }: { params: Promise<{ id: string }> }
 ) {
     try {
-        const supabase = await createSupabaseServerClient()
-        const { data: { user } } = await supabase.auth.getUser()
-        const tenant_id = user?.app_metadata?.tenant_id as string | undefined
+        const { tenantId: tenant_id } = await getServerUser()
 
         const resolvedParams = await params;
         const chargeId = resolvedParams.id;
@@ -72,9 +70,7 @@ export async function POST(
     { params }: { params: Promise<{ id: string }> }
 ) {
     try {
-        const supabase = await createSupabaseServerClient()
-        const { data: { user: auth_user } } = await supabase.auth.getUser()
-        const tenant_id = auth_user?.app_metadata?.tenant_id as string | undefined
+        const { user: auth_user, tenantId: tenant_id } = await getServerUser()
 
         if (!tenant_id) {
             return NextResponse.json({ data: null, error: { message: 'Unauthorized' }, meta: null }, { status: 401 });

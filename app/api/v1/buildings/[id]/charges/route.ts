@@ -2,16 +2,14 @@ import { NextResponse } from 'next/server';
 import { db } from '@apro/db';
 import { units, charges } from '@apro/db/src/schema';
 import { eq, and, sql } from 'drizzle-orm';
-import { createSupabaseServerClient } from '@/lib/supabase/server';
+import { getServerUser } from '@/lib/supabase/server';
 
 export async function GET(
     req: Request,
     { params }: { params: Promise<{ id: string }> }
 ) {
     try {
-        const supabase = await createSupabaseServerClient()
-        const { data: { user } } = await supabase.auth.getUser()
-        const tenant_id = user?.app_metadata?.tenant_id as string | undefined
+        const { tenantId: tenant_id } = await getServerUser()
 
         const resolvedParams = await params;
         const buildingId = resolvedParams.id;

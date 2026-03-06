@@ -3,21 +3,14 @@ import { createClient } from '@supabase/supabase-js'
 import { db, people, appRoles } from '@apro/db'
 import { eq, and } from 'drizzle-orm'
 import { successResponse, errorResponse } from '@/lib/api/response'
-import { createSupabaseServerClient } from '@/lib/supabase/server'
+import { getServerUser } from '@/lib/supabase/server'
 
 export async function POST(
     req: NextRequest,
     { params }: { params: Promise<{ id: string }> }
 ) {
     try {
-        const supabase = await createSupabaseServerClient()
-        const { data: { user } } = await supabase.auth.getUser()
-
-        if (!user) {
-            return errorResponse('Unauthorized', 401)
-        }
-
-        const tenantId = user?.app_metadata?.tenant_id as string | undefined
+        const { user, tenantId } = await getServerUser()
 
         if (!tenantId) {
             return await errorResponse('Unauthorized', 401)

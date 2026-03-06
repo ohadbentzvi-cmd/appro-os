@@ -2,7 +2,7 @@ import { NextRequest } from 'next/server'
 import { db, unitRoles } from '@apro/db'
 import { eq, and, or, isNull, gte, sql } from 'drizzle-orm'
 import { successResponse, errorResponse } from '@/lib/api/response'
-import { createSupabaseServerClient } from '@/lib/supabase/server'
+import { getServerUser } from '@/lib/supabase/server'
 import { validateBody } from '@/lib/api/validate'
 import { createUnitRoleSchema } from '@/lib/api/schemas'
 
@@ -22,9 +22,7 @@ export async function POST(
         if ('error' in valid) return valid.error
 
         const data = valid.data
-        const supabase = await createSupabaseServerClient()
-        const { data: { user } } = await supabase.auth.getUser()
-        const tenantId = user?.app_metadata?.tenant_id as string | undefined
+        const { tenantId } = await getServerUser()
 
         if (!tenantId) {
             return await errorResponse('Unauthorized', 401)
