@@ -4,8 +4,9 @@
     "main": "src/index.ts",
     "scripts": {
         "db:generate": "drizzle-kit generate",
-        "db:push": "drizzle-kit push",
-        "db:studio": "drizzle-kit studio"
+        "db:migrate": "drizzle-kit migrate",
+        "db:studio": "drizzle-kit studio",
+        "db:apply-manual": "npx tsx src/apply-sql.ts"
     },
     "dependencies": {
         "drizzle-orm": "latest",
