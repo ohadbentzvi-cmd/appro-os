@@ -1,66 +1,267 @@
 # Apro
 
 ## Project Overview
-Apro is a SaaS property management platform for Israeli residential 
-buildings. It manages buildings, units, tenants, owners, and building 
-committees (Va'ad Bayit). The UI is in Hebrew. The system is designed 
-for multi-tenancy from day one — every table carries a tenant_id, 
-currently scoped to Apro's own record.
+Apro is a SaaS property management platform for Israeli residential
+buildings. It manages buildings, units, tenants, owners, and building
+committees (Va'ad Bayit). The UI is in Hebrew. The system is designed
+for multi-tenancy from day one — every table carries a `tenant_id`.
 
 ## Tech Stack
-- Next.js 14 (App Router, Server Components, Route Handlers)
+- Next.js (App Router, Server Components, Route Handlers)
 - Supabase (Auth + managed PostgreSQL + Row Level Security)
 - Drizzle ORM (type-safe queries and migrations)
 - Railway (deployment and hosting)
 - pnpm workspaces (monorepo)
 
-## Getting Started
-1. Clone the repository
-2. Run `pnpm install`
-3. Copy `.env.example` to `.env.local` and populate all keys
-4. In Supabase Dashboard: enable Email provider, disable email 
-   confirmation (dev), set redirect URL to http://localhost:3000/auth/callback
-5. Run `pnpm db:push` to sync schema to your Supabase instance
-6. Run `pnpm dev`
+## Environments
 
-## Project Structure
-```text
-├── apps/
-│   └── web/                  - Next.js app
-│       ├── app/
-│       │   ├── dashboard/    - Protected management UI (Hebrew)
-│       │   ├── api/v1/       - REST API (buildings, units, people, roles, auth)
-│       │   ├── login/        - Auth page (magic link + password)
-│       │   └── portal/       - Tenant/owner portal (placeholder)
-│       └── lib/
-│           ├── supabase/     - Server, middleware and browser clients
-│           └── api/          - Shared response helpers, Zod schemas
-└── packages/
-    └── db/                   - Drizzle schemas, migrations, shared db client
-```
+| Environment | Supabase project | Credentials |
+|---|---|---|
+| Local dev | `apro-dev` | `.env.local` |
+| Staging | `apro-dev` (shared) | Railway staging env vars |
+| Production | `apro-prod` | Railway production env vars |
 
-## Database Schema
-Six tables, all with tenant_id: `tenants`, `buildings`, `units`, 
-`people`, `unit_roles` (the core join table — roles are scoped 
-to a unit, not global), `app_roles` (platform access control).
+Local dev and staging currently share the `apro-dev` Supabase project.
+When the plan upgrades to a paid tier, staging will get its own project.
 
-## API
-All endpoints under `/api/v1/`. Consistent response envelope:
-`{ data, error, meta }`. Zod-validated on every route.
-Main resources: `/buildings`, `/units`, `/people`, `/roles`, `/auth/me`.
+---
+
+## Getting Started (Local Dev)
+
+1. **Install dependencies**
+   ```bash
+   pnpm install
+   ```
+
+2. **Get the `.env.local` file** from the team (it contains credentials for `apro-dev`).
+   Do not copy `.env.example` and fill it in yourself — ask a teammate for the file.
+
+3. **Run migrations** to create all tables in the dev DB:
+   ```bash
+   pnpm db:migrate
+   ```
+
+4. **Apply manual SQL** (RLS policies, functions, seed data):
+   ```bash
+   pnpm db:apply-manual -- --seed
+   ```
+
+5. **Register the auth hook** in the `apro-dev` Supabase dashboard (one-time):
+   - Authentication → Hooks → Custom Access Token Hook
+   - Select `public.custom_access_token_hook`
+
+6. **Configure Auth settings** in the `apro-dev` dashboard (one-time):
+   - Email provider → disable "Confirm email"
+   - URL Configuration → add `http://localhost:3000/auth/callback` as a redirect URL
+
+7. **Start the dev server**
+   ```bash
+   pnpm dev
+   ```
+
+---
 
 ## Key Scripts
-- `pnpm dev` — start local dev server
-- `pnpm build` — production build
-- `pnpm db:generate` — generate Drizzle migrations
-- `pnpm db:push` — push schema directly to database
-- `pnpm db:studio` — open Drizzle Studio
+
+| Script | What it does |
+|---|---|
+| `pnpm dev` | Start local dev server |
+| `pnpm db:generate` | Generate a new migration file after a schema change |
+| `pnpm db:migrate` | Apply pending migrations to the database |
+| `pnpm db:apply-manual` | Re-apply RLS, indexes, functions to the current DB |
+| `pnpm db:studio` | Open Drizzle Studio (visual DB browser) |
+
+---
+
+## Database Migrations — A Guide for Django Developers
+
+If you know Django, Drizzle migrations work the same way at a high level.
+Here is the direct mapping:
+
+| Django | Drizzle (this project) |
+|---|---|
+| `models.py` | `packages/db/src/schema/*.ts` |
+| `python manage.py makemigrations` | `pnpm db:generate` |
+| `python manage.py migrate` | `pnpm db:migrate` |
+| `app/migrations/0001_*.py` files | `packages/db/migrations/0000_baseline.sql` etc. |
+| `django_migrations` DB table | `drizzle.__drizzle_migrations` DB table |
+
+The mental model is identical:
+1. You edit the schema files (the source of truth)
+2. You run a command to **generate** a migration file describing the change
+3. You run another command to **apply** that migration to the database
+4. Both the schema change **and** the generated migration file get committed to git
+
+### Making a schema change — step by step
+
+Say you want to add a `notes` column to the `buildings` table.
+
+**Step 1 — Edit the schema file**
+
+Open `packages/db/src/schema/buildings.ts` and add the column:
+```ts
+notes: text('notes'),
+```
+
+**Step 2 — Generate the migration**
+```bash
+pnpm db:generate
+```
+This creates a new file like `packages/db/migrations/0001_add_building_notes.sql`
+containing the raw SQL (`ALTER TABLE buildings ADD COLUMN notes text`).
+It does **not** touch the database.
+
+**Step 3 — Apply the migration**
+```bash
+pnpm db:migrate
+```
+This runs the new SQL against the database and records it in `drizzle.__drizzle_migrations`
+so it is never run again.
+
+**Step 4 — Commit everything**
+```bash
+git add packages/db/src/schema/buildings.ts
+git add packages/db/migrations/
+git commit -m "feat(db): add notes column to buildings"
+```
+
+Both the schema file and the migration file must be committed together.
+Other developers run `pnpm db:migrate` after pulling and their DB is updated automatically.
+
+### Two kinds of database files — know the difference
+
+This project has two separate concepts that are easy to confuse:
+
+**1. Drizzle migrations** (`packages/db/migrations/*.sql`)
+- Auto-generated by `pnpm db:generate`
+- Applied by `pnpm db:migrate`
+- Track table structure: `CREATE TABLE`, `ALTER TABLE`, `ADD COLUMN`, etc.
+- Drizzle tracks which ones have been applied in the `drizzle.__drizzle_migrations` table
+- **Never edit these files by hand**
+
+**2. Manual SQL** (`packages/db/migrations/manual/*.sql`)
+- Written by hand, applied by `pnpm db:apply-manual`
+- Cover things Drizzle cannot manage: Row Level Security policies, PostgreSQL
+  functions, triggers, grants, and indexes
+- Safe to re-run at any time (all files are idempotent)
+- **Must be re-applied manually** when setting up a new Supabase project,
+  or when you change the logic inside them
+
+Think of manual SQL as the equivalent of a Django `RunSQL` migration that you
+manage yourself, kept separate because these statements can be re-run safely
+and don't represent a linear history of changes.
+
+### Two database URLs — why there are two
+
+You will see two connection strings in `.env.local`:
+
+```
+DATABASE_URL            — port 6543 (transaction pooler)
+MIGRATION_DATABASE_URL  — port 5432 (direct connection)
+```
+
+Supabase routes production traffic through PgBouncer (a connection pooler)
+on port 6543 to handle many concurrent app connections efficiently. However,
+PgBouncer in transaction mode is unreliable for DDL (`CREATE TABLE` etc.)
+inside transactions — which is exactly what Drizzle's migrate command does.
+
+So the rule is:
+- **The running app** uses `DATABASE_URL` (port 6543) — always
+- **`pnpm db:migrate`** uses `MIGRATION_DATABASE_URL` (port 5432) — admin only, not the app
+
+`MIGRATION_DATABASE_URL` is read by two consumers:
+- `drizzle.config.ts` — when you run `pnpm db:migrate` locally
+- `nixpacks.toml` — Railway's start command runs `pnpm db:migrate && pnpm start` on every deploy
+
+**You must set `MIGRATION_DATABASE_URL` in your Railway environment variables** (both staging and production)
+so that migrations run automatically when a new version is deployed.
+
+### What happens when a teammate pulls your schema change
+
+1. They pull your branch
+2. They see a new file in `packages/db/migrations/`
+3. They run `pnpm db:migrate`
+4. Drizzle checks `drizzle.__drizzle_migrations`, sees the new migration hash is missing, runs it
+5. Their local dev DB is now in sync
+
+This is exactly how `python manage.py migrate` works after a teammate's
+`makemigrations` commit lands.
+
+### What happens on a production deploy
+
+Migrations run **automatically** on every Railway deploy. The `nixpacks.toml` start command is:
+
+```
+pnpm db:migrate && pnpm start
+```
+
+Drizzle checks `drizzle.__drizzle_migrations`, applies only the new migrations, then starts the app.
+This requires `MIGRATION_DATABASE_URL` to be set in Railway env vars (port 5432 direct connection).
+
+---
+
+## Project Structure
+
+```text
+├── app/                      - Next.js App Router
+│   ├── dashboard/            - Protected management UI (Hebrew)
+│   ├── api/v1/               - REST API (buildings, units, people, roles, auth)
+│   ├── login/                - Auth page (magic link)
+│   └── auth/callback/        - Supabase auth callback handler
+├── lib/
+│   ├── supabase/             - Server, middleware and browser Supabase clients
+│   └── api/                  - Response helpers, Zod schemas
+└── packages/
+    └── db/
+        ├── src/schema/       - Drizzle table definitions — EDIT THESE to change schema
+        ├── migrations/       - Auto-generated SQL files — do not edit by hand
+        └── migrations/manual/- Hand-written SQL: RLS, triggers, functions, indexes
+```
+
+---
+
+## Database Schema
+
+Ten tables, all with `tenant_id`:
+
+| Table | Purpose |
+|---|---|
+| `tenants` | One row per company using the platform |
+| `buildings` | Physical buildings, linked to a tenant |
+| `units` | Apartments within a building |
+| `people` | Tenants, owners, guarantors — people linked to units |
+| `unit_roles` | Join table: a person's role in a unit (owner/tenant/guarantor) |
+| `app_roles` | Platform access: which Supabase user has which role |
+| `unit_payment_config` | Monthly fee amount per unit |
+| `charges` | Monthly charge records generated per unit |
+| `payments` | Payments recorded against a charge |
+| `charge_generation_log` | Audit log for the charge generation cron |
+
+---
 
 ## Environment Variables
-| Variable | Description |
-|---|---|
-| `NEXT_PUBLIC_SUPABASE_URL` | Supabase project URL |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Public anon key |
-| `SUPABASE_SERVICE_ROLE_KEY` | Server-only admin key |
-| `DATABASE_URL` | Postgres connection string (Supabase pooler, port 6543) |
-| `APRO_TENANT_ID` | UUID of the Apro tenant row (from tenants table) |
+
+See `.env.example` for the full template. Key variables:
+
+| Variable | Used by | Description |
+|---|---|---|
+| `NEXT_PUBLIC_SUPABASE_URL` | App (client + server) | Supabase project URL |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | App (client) | Public anon key |
+| `SUPABASE_SERVICE_ROLE_KEY` | App (server only) | Admin key — never expose to browser |
+| `DATABASE_URL` | App (runtime) | Port **6543** transaction pooler |
+| `MIGRATION_DATABASE_URL` | `pnpm db:migrate` only | Port **5432** direct connection — **required in Railway env vars** |
+| `APRO_TENANT_ID` | Cron endpoint + seed scripts | Not used in route handlers |
+
+---
+
+## Setting up a new Supabase project
+
+When you eventually create a dedicated staging project (or any new environment):
+
+1. Add the new project's credentials to the relevant env file
+2. Run `pnpm db:migrate` to create all tables
+3. Run `pnpm db:apply-manual -- --seed` to apply RLS, functions, and seed data
+4. Register `custom_access_token_hook` in the dashboard under Authentication → Hooks
+5. Configure Auth redirect URL in the dashboard
+
+See `packages/db/migrations/manual/README.md` for details on what each manual SQL file does.
