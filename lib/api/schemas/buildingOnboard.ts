@@ -25,7 +25,7 @@ export const buildingOnboardSchema = z.object({
         floors: z.number().int().min(1).optional(),
         year_built: z.number().int().min(1800).optional(),
     }),
-    units: z.array(unitSchema).min(1, 'At least one unit is required'),
+    units: z.array(unitSchema).min(0),
 });
 
 export type BuildingOnboardPayload = z.infer<typeof buildingOnboardSchema>;

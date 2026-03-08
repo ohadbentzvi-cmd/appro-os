@@ -1,0 +1,1 @@
+CREATE UNIQUE INDEX "people_phone_unique_idx" ON "people" USING btree ("phone");

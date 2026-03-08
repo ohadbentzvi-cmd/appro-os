@@ -12,6 +12,15 @@ export function Step1BuildingDetails({ wizard }: { wizard: ReturnType<typeof use
         });
     };
 
+    const handleNumUnitsChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const val = parseInt(e.target.value, 10);
+        if (!isNaN(val) && val >= 1) {
+            wizard.setNumUnitsAndRegenerate(val);
+        } else if (e.target.value === '') {
+            wizard.setNumUnitsAndRegenerate(0);
+        }
+    };
+
     return (
         <div className="space-y-8 animate-in fade-in slide-in-from-right-4 duration-500">
             <div className="bg-white p-8 rounded-2xl shadow-sm border border-gray-100">
@@ -68,30 +77,43 @@ export function Step1BuildingDetails({ wizard }: { wizard: ReturnType<typeof use
                     </div>
 
                     <div>
-                        <label className="block text-sm font-semibold text-gray-700 mb-2">מספר קומות <span className="text-gray-400 font-normal">(אופציונלי)</span></label>
+                        <label className="block text-sm font-semibold text-gray-700 mb-2">מספר דירות *</label>
                         <input
                             type="number"
-                            name="floors"
                             min="1"
-                            value={building.floors || ''}
-                            onChange={handleChange}
+                            value={wizard.numUnits ?? ''}
+                            onChange={handleNumUnitsChange}
                             className="w-full bg-gray-50 border border-gray-200 rounded-xl py-3 px-4 focus:outline-none focus:ring-2 focus:ring-apro-green/50 focus:border-apro-green transition-all"
-                            placeholder="0"
+                            placeholder="כמה דירות בבניין?"
                         />
                     </div>
 
-                    <div>
-                        <label className="block text-sm font-semibold text-gray-700 mb-2">שנת בנייה <span className="text-gray-400 font-normal">(אופציונלי)</span></label>
-                        <input
-                            type="number"
-                            name="year_built"
-                            min="1800"
-                            max={new Date().getFullYear()}
-                            value={building.year_built || ''}
-                            onChange={handleChange}
-                            className="w-full bg-gray-50 border border-gray-200 rounded-xl py-3 px-4 focus:outline-none focus:ring-2 focus:ring-apro-green/50 focus:border-apro-green transition-all"
-                            placeholder="YYYY"
-                        />
+                    <div className="grid grid-cols-2 gap-4">
+                        <div>
+                            <label className="block text-sm font-semibold text-gray-700 mb-2">מספר קומות <span className="text-gray-400 font-normal">(אופציונלי)</span></label>
+                            <input
+                                type="number"
+                                name="floors"
+                                min="1"
+                                value={building.floors || ''}
+                                onChange={handleChange}
+                                className="w-full bg-gray-50 border border-gray-200 rounded-xl py-3 px-4 focus:outline-none focus:ring-2 focus:ring-apro-green/50 focus:border-apro-green transition-all"
+                                placeholder="0"
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-semibold text-gray-700 mb-2">שנת בנייה <span className="text-gray-400 font-normal">(אופציונלי)</span></label>
+                            <input
+                                type="number"
+                                name="year_built"
+                                min="1800"
+                                max={new Date().getFullYear()}
+                                value={building.year_built || ''}
+                                onChange={handleChange}
+                                className="w-full bg-gray-50 border border-gray-200 rounded-xl py-3 px-4 focus:outline-none focus:ring-2 focus:ring-apro-green/50 focus:border-apro-green transition-all"
+                                placeholder="YYYY"
+                            />
+                        </div>
                     </div>
                 </div>
             </div>

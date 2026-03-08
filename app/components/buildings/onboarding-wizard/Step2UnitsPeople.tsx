@@ -1,212 +1,291 @@
 'use client';
-import { useState, useCallback } from 'react';
-import { Trash2, Plus, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { useRef, useState } from 'react';
+import { AlertCircle, CheckCircle2, Download, Upload } from 'lucide-react';
 import { useWizardState } from './useWizardState';
-import { parseClipboardToUnits } from '../../../lib/wizard/parseClipboardToUnits';
+import { downloadExcelTemplate, parseExcelToUnits, CellWarning } from '../../../lib/wizard/excelTemplate';
+import { WizardPersonUI, WizardUnitUI } from '@/app/lib/wizard/wizardTypes';
+import { PHONE_REGEX } from '@/app/lib/wizard/validation';
+
+/**
+ * Returns phones that appear more than once across all units with DIFFERENT names.
+ * Same phone + same name = same person in multiple units = allowed.
+ */
+function getConflictingPhones(units: WizardUnitUI[]): Set<string> {
+    // phone → lowercased full name of first occurrence
+    const phoneNameMap = new Map<string, string>();
+    const conflicting = new Set<string>();
+
+    for (const unit of units) {
+        for (const role of ['owner', 'tenant'] as const) {
+            const person = unit[role];
+            if (!person?.phone) continue;
+            const fullName = [person.first_name, person.last_name]
+                .filter(Boolean).join(' ').trim().toLowerCase();
+            if (phoneNameMap.has(person.phone)) {
+                if (phoneNameMap.get(person.phone) !== fullName) {
+                    conflicting.add(person.phone);
+                }
+                // same name → same person → OK, no conflict
+            } else {
+                phoneNameMap.set(person.phone, fullName);
+            }
+        }
+    }
+    return conflicting;
+}
 
 export function Step2UnitsPeople({ wizard }: { wizard: ReturnType<typeof useWizardState> }) {
-    const handleAddRow = () => {
-        let nextNum = 1;
-        const existingNumbers = wizard.units
-            .map(u => parseInt(u.unit_number, 10))
-            .filter(n => !isNaN(n));
+    const fileInputRef = useRef<HTMLInputElement>(null);
+    const [uploadError, setUploadError] = useState<string[] | null>(null);
+    const [uploadSuccess, setUploadSuccess] = useState<string | null>(null);
+    const [cellWarnings, setCellWarnings] = useState<CellWarning[]>([]);
 
-        if (existingNumbers.length > 0) {
-            nextNum = Math.max(...existingNumbers) + 1;
+    const conflictingPhones = getConflictingPhones(wizard.units);
+    const hasDuplicatePhones = conflictingPhones.size > 0;
+
+    const getCellWarning = (unitNumber: string, field: CellWarning['field']) =>
+        cellWarnings.find(w => w.unit_number === unitNumber && w.field === field);
+
+    const handleDownloadTemplate = async () => {
+        await downloadExcelTemplate(wizard.units);
+    };
+
+    const handleUploadClick = () => {
+        setUploadError(null);
+        setUploadSuccess(null);
+        setCellWarnings([]);
+        fileInputRef.current?.click();
+    };
+
+    const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        e.target.value = '';
+
+        setUploadError(null);
+        setUploadSuccess(null);
+        setCellWarnings([]);
+
+        const expectedNumbers = wizard.units.map(u => u.unit_number);
+        const result = await parseExcelToUnits(file, expectedNumbers);
+
+        if (!result.ok) {
+            setUploadError(result.errors);
+            return;
         }
 
-        wizard.addUnit({
-            unit_number: nextNum.toString(),
-            fee_payer: 'none',
+        wizard.applyExcelUnits(result.units);
+
+        if (result.warnings.length > 0) {
+            setCellWarnings(result.warnings);
+            setUploadSuccess(`✓ הנתונים יובאו. ${result.warnings.length} שדות דורשים תיקון (מסומנים באדום).`);
+        } else {
+            setUploadSuccess(`✓ ${result.units.length} דירות עודכנו מהקובץ. ניתן לערוך את הנתונים לפני המשך.`);
+        }
+        setTimeout(() => setUploadSuccess(null), 6000);
+    };
+
+    const updatePerson = (
+        unitIndex: number,
+        role: 'owner' | 'tenant',
+        field: keyof WizardPersonUI,
+        value: string
+    ) => {
+        const unit = wizard.units[unitIndex];
+        const current = unit[role];
+        wizard.updateUnit(unitIndex, {
+            [role]: {
+                first_name: '',
+                last_name: '',
+                phone: '',
+                ...current,
+                [field]: value,
+            },
         });
-    };
 
-    const [pasteError, setPasteError] = useState<string | null>(null);
-    const [pasteSuccess, setPasteSuccess] = useState<string | null>(null);
-
-    const handlePaste = useCallback((e: React.ClipboardEvent) => {
-        const text = e.clipboardData.getData('text/plain');
-        if (!text) return;
-
-        // Block if inside an input to allow normal copying and pasting of cell values
-        const activeElement = document.activeElement as HTMLElement;
-        if (activeElement && (activeElement.tagName === 'INPUT' || activeElement.tagName === 'TEXTAREA')) {
-            return;
+        // Clear cell warning when user edits the field
+        if (field === 'phone') {
+            const warningField = role === 'owner' ? 'owner_phone' : 'tenant_phone';
+            setCellWarnings(prev => prev.filter(
+                w => !(w.unit_number === unit.unit_number && w.field === warningField)
+            ));
         }
-
-        e.preventDefault();
-        setPasteError(null);
-        setPasteSuccess(null);
-
-        const res = parseClipboardToUnits(text);
-        if (!res.ok) {
-            if (res.error === 'TOO_MANY_COLUMNS') {
-                setPasteError('הנתונים שהדבקת מכילים יותר מ-6 עמודות. ודא שאתה מעתיק את הטווח הנכון ונסה שוב.');
-            } else if (res.error === 'MISSING_UNIT_NUMBER') {
-                setPasteError('אחת או יותר מהשורות חסרות מספר דירה בעמודה הראשונה. ודא שהעמודה הראשונה מכילה מספר דירה בכל שורה ונסה שוב.');
-            } else {
-                setPasteError('לא זוהו נתונים בהדבקה. נסה שוב.');
-            }
-            return;
-        }
-
-        wizard.applyPastedUnits(res.units);
-        setPasteSuccess(`✓ ${res.units.length} דירות יובאו בהצלחה. ניתן לערוך את הנתונים לפני המשך.`);
-
-        setTimeout(() => {
-            setPasteSuccess(null);
-        }, 4000);
-    }, [wizard]);
-
-    // Clear paste error if they start manually typing
-    const onManualInteraction = () => {
-        if (pasteError) setPasteError(null);
     };
-
-    // Global duplicate checks for the active table
-    const numbers = wizard.units.map(u => u.unit_number.trim().toLowerCase()).filter(n => n !== '');
-    const hasDuplicates = new Set(numbers).size !== numbers.length;
 
     return (
         <div className="flex flex-col h-full gap-4 animate-in fade-in slide-in-from-right-4 duration-500">
+            {/* Header */}
             <div className="flex items-center justify-between shrink-0">
                 <div>
                     <h3 className="text-xl font-bold text-apro-navy">דירות ודיירים</h3>
-                    <p className="text-sm text-gray-500 mt-1">הזן דירות ופרטי דיירים ובעלים, או הדבק אקסל ישירות לכאן.</p>
+                    <p className="text-sm text-gray-500 mt-1">הזן פרטי דיירים ובעלי נכס לכל דירה, או השתמש בתבנית האקסל.</p>
                 </div>
                 <div className="text-xs font-bold text-gray-400 bg-white border border-gray-200 px-3 py-1.5 rounded-full shrink-0">
                     סה״כ: {wizard.units.length} דירות
                 </div>
             </div>
 
-            {hasDuplicates && (
-                <div className="p-4 bg-red-50 border border-red-200 text-red-700 rounded-xl font-bold text-sm shrink-0">
-                    שגיאה: יש מספרי דירות כפולים בטבלה. לא ניתן להמשיך.
+            {/* Conflicting phone banner */}
+            {hasDuplicatePhones && (
+                <div className="p-4 bg-red-50 border border-red-200 text-red-700 rounded-xl font-bold text-sm shrink-0 flex items-center gap-2">
+                    <AlertCircle className="w-5 h-5 shrink-0" />
+                    מספר הטלפון הזה משויך לאדם נוסף בטבלה. אם מדובר באותו אדם, וודא שהשם זהה בשתי הדירות.
                 </div>
             )}
 
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden flex flex-col" onPaste={handlePaste}>
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden flex flex-col">
+                {/* Toolbar */}
                 <div className="px-6 py-4 bg-gray-50/50 border-b border-gray-100 flex flex-col gap-3 shrink-0">
-                    <p className="text-xs text-gray-500 font-medium">
-                        <span className="font-bold">טיפ:</span> ניתן להדביק טווח מאקסל ישירות לטבלה — עמודות לפי הסדר: מספר דירה, קומה, שם בעלים, טלפון בעלים, שם דייר, טלפון דייר
-                    </p>
+                    <div className="flex items-center gap-3">
+                        <button
+                            onClick={handleDownloadTemplate}
+                            className="flex items-center gap-2 text-sm font-bold text-apro-navy bg-white border border-gray-200 px-4 py-2 rounded-xl hover:bg-gray-50 transition-colors shadow-sm"
+                        >
+                            <Download className="w-4 h-4" />
+                            הורד תבנית Excel
+                        </button>
+                        <button
+                            onClick={handleUploadClick}
+                            className="flex items-center gap-2 text-sm font-bold text-apro-navy bg-white border border-gray-200 px-4 py-2 rounded-xl hover:bg-gray-50 transition-colors shadow-sm"
+                        >
+                            <Upload className="w-4 h-4" />
+                            העלה קובץ מאוכלס
+                        </button>
+                        <input
+                            ref={fileInputRef}
+                            type="file"
+                            accept=".xlsx,.xls"
+                            className="hidden"
+                            onChange={handleFileChange}
+                        />
+                    </div>
 
-                    {pasteError && (
-                        <div className="flex items-center gap-2 p-3 bg-red-50 text-red-700 text-sm font-bold rounded-lg border border-red-100 animate-in fade-in slide-in-from-top-2">
-                            <AlertCircle className="w-5 h-5 shrink-0" />
-                            <p>{pasteError}</p>
+                    {uploadError && (
+                        <div className="flex flex-col gap-1 p-3 bg-red-50 text-red-700 text-sm rounded-lg border border-red-100 animate-in fade-in slide-in-from-top-2">
+                            <div className="flex items-center gap-2 font-bold">
+                                <AlertCircle className="w-5 h-5 shrink-0" />
+                                <span>שגיאות בקובץ — לא בוצעו שינויים:</span>
+                            </div>
+                            <ul className="list-disc list-inside mr-6 space-y-0.5">
+                                {uploadError.map((err, i) => <li key={i}>{err}</li>)}
+                            </ul>
                         </div>
                     )}
 
-                    {pasteSuccess && (
+                    {uploadSuccess && (
                         <div className="flex items-center gap-2 p-3 bg-green-50 text-green-700 text-sm font-bold rounded-lg border border-green-100 animate-in fade-in slide-in-from-top-2">
                             <CheckCircle2 className="w-5 h-5 shrink-0" />
-                            <p>{pasteSuccess}</p>
+                            <p>{uploadSuccess}</p>
                         </div>
                     )}
                 </div>
 
+                {/* Table */}
                 <div className="overflow-auto flex-1 min-h-0">
                     <table className="w-full text-right relative" dir="rtl">
                         <thead className="bg-gray-50 border-b border-gray-100 whitespace-nowrap sticky top-0 z-10 shadow-sm">
                             <tr>
-                                <th className="py-3 px-4 font-bold text-gray-500 text-sm min-w-[120px]">מספר דירה *</th>
-                                <th className="py-3 px-4 font-bold text-gray-500 text-sm min-w-[100px]">קומה</th>
-                                <th className="py-3 px-4 font-bold text-gray-500 text-sm min-w-[200px]">שם בעלים</th>
-                                <th className="py-3 px-4 font-bold text-gray-500 text-sm min-w-[160px]">טלפון בעלים</th>
-                                <th className="py-3 px-4 font-bold text-gray-500 text-sm min-w-[200px]">שם דייר</th>
-                                <th className="py-3 px-4 font-bold text-gray-500 text-sm min-w-[160px]">טלפון דייר</th>
-                                <th className="py-3 px-4 font-bold text-gray-500 text-sm w-16"></th>
+                                <th className="py-3 px-4 font-bold text-gray-500 text-sm min-w-[80px]">דירה</th>
+                                <th className="py-3 px-4 font-bold text-gray-500 text-sm min-w-[130px]">שם פרטי בעל הנכס</th>
+                                <th className="py-3 px-4 font-bold text-gray-500 text-sm min-w-[130px]">שם משפחה בעל הנכס</th>
+                                <th className="py-3 px-4 font-bold text-gray-500 text-sm min-w-[150px]">טלפון בעל הנכס</th>
+                                <th className="py-3 px-4 font-bold text-gray-500 text-sm min-w-[130px]">שם פרטי דייר</th>
+                                <th className="py-3 px-4 font-bold text-gray-500 text-sm min-w-[130px]">שם משפחה דייר</th>
+                                <th className="py-3 px-4 font-bold text-gray-500 text-sm min-w-[150px]">טלפון דייר</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-50">
                             {wizard.units.map((unit, index) => {
-                                const otherUnits = wizard.units.filter((_, i) => i !== index);
-                                const isDuplicate = unit.unit_number && otherUnits.some(u => u.unit_number.trim().toLowerCase() === unit.unit_number.trim().toLowerCase());
+                                const ownerPhone = unit.owner?.phone ?? '';
+                                const tenantPhone = unit.tenant?.phone ?? '';
+
+                                const ownerPhoneInvalid = ownerPhone !== '' && !PHONE_REGEX.test(ownerPhone);
+                                const tenantPhoneInvalid = tenantPhone !== '' && !PHONE_REGEX.test(tenantPhone);
+                                const ownerPhoneConflict = conflictingPhones.has(ownerPhone);
+                                const tenantPhoneConflict = conflictingPhones.has(tenantPhone);
+
+                                const ownerPhoneWarning = getCellWarning(unit.unit_number, 'owner_phone');
+                                const tenantPhoneWarning = getCellWarning(unit.unit_number, 'tenant_phone');
 
                                 return (
-                                    <tr key={index} className="hover:bg-gray-50/50 transition-colors group">
+                                    <tr key={unit.unit_number} className="hover:bg-gray-50/50 transition-colors">
+                                        {/* Unit number — read-only */}
+                                        <td className="py-2 px-4">
+                                            <span className="font-semibold text-apro-navy px-2">{unit.unit_number}</span>
+                                        </td>
+                                        {/* Owner first name */}
                                         <td className="py-2 px-4">
                                             <input
                                                 type="text"
-                                                className={`w-full bg-transparent border-0 focus:ring-0 p-2 font-semibold ${isDuplicate ? 'text-red-500 bg-red-50 rounded' : ''}`}
-                                                value={unit.unit_number}
-                                                placeholder="הזן מס' דירה"
-                                                onClick={onManualInteraction}
-                                                onChange={(e) => wizard.updateUnit(index, { unit_number: e.target.value })}
+                                                dir="rtl"
+                                                className="w-full bg-transparent border-0 focus:ring-0 p-2 placeholder:text-right"
+                                                value={unit.owner?.first_name ?? ''}
+                                                placeholder="שם פרטי"
+                                                onChange={(e) => updatePerson(index, 'owner', 'first_name', e.target.value)}
                                             />
                                         </td>
-                                        <td className="py-2 px-4">
-                                            <input
-                                                type="number"
-                                                className="w-full bg-transparent border-0 focus:ring-0 p-2"
-                                                value={unit.floor ?? ''}
-                                                placeholder="-"
-                                                onChange={(e) => wizard.updateUnit(index, { floor: e.target.value ? parseInt(e.target.value, 10) : undefined })}
-                                            />
-                                        </td>
-                                        {/* Owner Info */}
+                                        {/* Owner last name */}
                                         <td className="py-2 px-4">
                                             <input
                                                 type="text"
-                                                className="w-full bg-transparent border-0 focus:ring-0 p-2"
-                                                value={unit.owner?.full_name || ''}
-                                                placeholder="שם בעל הנכס"
-                                                onChange={(e) => wizard.updateUnit(index, { owner: { ...unit.owner, full_name: e.target.value, phone: unit.owner?.phone || '' } })}
+                                                dir="rtl"
+                                                className="w-full bg-transparent border-0 focus:ring-0 p-2 placeholder:text-right"
+                                                value={unit.owner?.last_name ?? ''}
+                                                placeholder="שם משפחה"
+                                                onChange={(e) => updatePerson(index, 'owner', 'last_name', e.target.value)}
                                             />
                                         </td>
+                                        {/* Owner phone */}
                                         <td className="py-2 px-4">
                                             <input
                                                 type="tel"
-                                                className="w-full bg-transparent border-0 focus:ring-0 p-2"
-                                                value={unit.owner?.phone || ''}
-                                                placeholder="טלפון בעלים"
-                                                onChange={(e) => wizard.updateUnit(index, { owner: { ...unit.owner, full_name: unit.owner?.full_name || '', phone: e.target.value } })}
+                                                dir="rtl"
+                                                title={ownerPhoneWarning?.message}
+                                                className={`w-full bg-transparent border-0 focus:ring-0 p-2 placeholder:text-right ${ownerPhoneInvalid || ownerPhoneConflict || ownerPhoneWarning ? 'text-red-500 bg-red-50 rounded' : ''}`}
+                                                value={ownerPhone}
+                                                placeholder="05XXXXXXXX"
+                                                onChange={(e) => updatePerson(index, 'owner', 'phone', e.target.value)}
                                             />
                                         </td>
-                                        {/* Tenant Info */}
+                                        {/* Tenant first name */}
                                         <td className="py-2 px-4">
                                             <input
                                                 type="text"
-                                                className="w-full bg-transparent border-0 focus:ring-0 p-2"
-                                                value={unit.tenant?.full_name || ''}
-                                                placeholder="שם הדייר"
-                                                onChange={(e) => wizard.updateUnit(index, { tenant: { ...unit.tenant, full_name: e.target.value, phone: unit.tenant?.phone || '' } })}
+                                                dir="rtl"
+                                                className="w-full bg-transparent border-0 focus:ring-0 p-2 placeholder:text-right"
+                                                value={unit.tenant?.first_name ?? ''}
+                                                placeholder="שם פרטי"
+                                                onChange={(e) => updatePerson(index, 'tenant', 'first_name', e.target.value)}
                                             />
                                         </td>
+                                        {/* Tenant last name */}
+                                        <td className="py-2 px-4">
+                                            <input
+                                                type="text"
+                                                dir="rtl"
+                                                className="w-full bg-transparent border-0 focus:ring-0 p-2 placeholder:text-right"
+                                                value={unit.tenant?.last_name ?? ''}
+                                                placeholder="שם משפחה"
+                                                onChange={(e) => updatePerson(index, 'tenant', 'last_name', e.target.value)}
+                                            />
+                                        </td>
+                                        {/* Tenant phone */}
                                         <td className="py-2 px-4">
                                             <input
                                                 type="tel"
-                                                className="w-full bg-transparent border-0 focus:ring-0 p-2"
-                                                value={unit.tenant?.phone || ''}
-                                                placeholder="טלפון דייר"
-                                                onChange={(e) => wizard.updateUnit(index, { tenant: { ...unit.tenant, full_name: unit.tenant?.full_name || '', phone: e.target.value } })}
+                                                dir="rtl"
+                                                title={tenantPhoneWarning?.message}
+                                                className={`w-full bg-transparent border-0 focus:ring-0 p-2 placeholder:text-right ${tenantPhoneInvalid || tenantPhoneConflict || tenantPhoneWarning ? 'text-red-500 bg-red-50 rounded' : ''}`}
+                                                value={tenantPhone}
+                                                placeholder="05XXXXXXXX"
+                                                onChange={(e) => updatePerson(index, 'tenant', 'phone', e.target.value)}
                                             />
-                                        </td>
-                                        <td className="py-2 px-4 text-center">
-                                            <button
-                                                onClick={() => wizard.removeUnit(index)}
-                                                className="p-2 text-gray-400 opacity-0 group-hover:opacity-100 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
-                                                title="מחק דירה"
-                                            >
-                                                <Trash2 className="w-4 h-4" />
-                                            </button>
                                         </td>
                                     </tr>
                                 );
                             })}
                         </tbody>
                     </table>
-                </div>
-
-                <div className="p-4 border-t border-gray-100 bg-gray-50 flex justify-center shrink-0">
-                    <button
-                        onClick={handleAddRow}
-                        className="flex items-center gap-2 text-sm font-bold text-apro-navy bg-white border border-gray-200 px-6 py-2.5 rounded-xl hover:bg-gray-100 hover:text-apro-navy transition-colors shadow-sm"
-                    >
-                        <Plus className="w-4 h-4" />
-                        הוסף שורה
-                    </button>
                 </div>
             </div>
         </div>

@@ -1,4 +1,4 @@
-import { pgTable, uuid, text, timestamp } from 'drizzle-orm/pg-core';
+import { pgTable, uuid, text, timestamp, uniqueIndex } from 'drizzle-orm/pg-core';
 
 export const people = pgTable('people', {
     id: uuid('id').primaryKey().defaultRandom(),
@@ -9,4 +9,7 @@ export const people = pgTable('people', {
     phone: text('phone'),
     whatsappName: text('whatsapp_name'),
     createdAt: timestamp('created_at').defaultNow().notNull(),
-});
+}, (t) => ({
+    // Unique per tenant: same phone can exist across different tenants
+    tenantPhoneUniqueIdx: uniqueIndex('people_tenant_phone_unique_idx').on(t.tenantId, t.phone),
+}));

@@ -75,7 +75,7 @@ export default function CreatePersonForm({ onSuccess, onCancel }: CreatePersonFo
             }
         } catch (error: any) {
             console.error('Create person error:', error);
-            setCreateError('אירעה שגיאה ביצירת אדם. אולי האימייל כבר קיים?');
+            setCreateError('אירעה שגיאה ביצירת אדם. אולי מספר הטלפון כבר קיים?');
         } finally {
             setIsCreating(false);
         }
