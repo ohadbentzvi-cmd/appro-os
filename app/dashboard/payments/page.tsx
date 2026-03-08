@@ -62,30 +62,22 @@ function PaymentsDashboardContent() {
     }, [periodParam]);
 
     const handlePaymentRecorded = (chargeId: string, newStatus: any, newAmountPaid: number) => {
-        if (!monthlySnapshot) return;
-
-        // Deep clone snapshot to update state immutably
-        const newSnapshot = JSON.parse(JSON.stringify(monthlySnapshot)) as MonthlySnapshot;
-
-        let found = false;
-        for (const building of newSnapshot.buildings) {
-            for (const unit of building.units) {
-                if (unit.charge_id === chargeId) {
-                    unit.status = newStatus;
-                    unit.amount_paid = newAmountPaid;
-                    if (newStatus === 'paid') {
-                        unit.is_overdue = false;
+        // Use functional update so multiple calls in the same batch each see the latest state
+        setMonthlySnapshot(prev => {
+            if (!prev) return prev;
+            const next = JSON.parse(JSON.stringify(prev)) as MonthlySnapshot;
+            for (const building of next.buildings) {
+                for (const unit of building.units) {
+                    if (unit.charge_id === chargeId) {
+                        unit.status = newStatus;
+                        unit.amount_paid = newAmountPaid;
+                        if (newStatus === 'paid') unit.is_overdue = false;
+                        return next;
                     }
-                    found = true;
-                    break;
                 }
             }
-            if (found) break;
-        }
-
-        if (found) {
-            setMonthlySnapshot(newSnapshot);
-        }
+            return next;
+        });
     };
 
     // Derived data
@@ -149,46 +141,60 @@ function PaymentsDashboardContent() {
             )}
 
             {isLoading && !monthlySnapshot && (
-                <div className="flex flex-col items-center justify-center py-32 bg-white/50 rounded-3xl border border-gray-100 backdrop-blur-sm">
-                    <Loader2 className="w-10 h-10 text-apro-green animate-spin mb-4" />
-                    <p className="text-gray-500 font-medium animate-pulse">טוען נתוני גבייה...</p>
+                <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm">
+                    {/* Skeleton KPI cards */}
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 p-6 border-b border-gray-100">
+                        {[...Array(4)].map((_, i) => (
+                            <div key={i} className="bg-gray-50 rounded-xl p-4 animate-pulse">
+                                <div className="h-3 bg-gray-200 rounded w-2/3 mb-3" />
+                                <div className="h-6 bg-gray-200 rounded w-1/2" />
+                            </div>
+                        ))}
+                    </div>
+                    {/* Skeleton table rows */}
+                    <div className="divide-y divide-gray-100">
+                        {[...Array(7)].map((_, i) => (
+                            <div key={i} className="flex items-center gap-4 px-6 py-4 animate-pulse">
+                                <div className="h-4 bg-gray-100 rounded w-8" />
+                                <div className="h-4 bg-gray-100 rounded flex-1" />
+                                <div className="h-4 bg-gray-100 rounded w-24" />
+                                <div className="h-6 bg-gray-100 rounded-full w-16" />
+                                <div className="h-4 bg-gray-100 rounded w-20" />
+                            </div>
+                        ))}
+                    </div>
                 </div>
             )}
 
-            {(!isLoading || monthlySnapshot) && (
-                <>
-                    {/* Empty State */}
-                    {isCompletelyEmpty ? (
-                        <div className="bg-white rounded-3xl border border-gray-100 p-24 text-center shadow-sm flex flex-col items-center">
-                            <div className="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center mb-6">
-                                <AlertCircle className="w-10 h-10 text-gray-300" />
-                            </div>
-                            <h2 className="text-2xl font-bold text-apro-navy mb-2">לא נוצרו חיובים לחודש זה</h2>
-                            <p className="text-gray-500 mb-8 max-w-sm">לא קיימות הגדרות גבייה או שלא הופקו מעולם חיובים בהיסטוריה לתקופה זו.</p>
+            {/* Data — only when snapshot exists and has charges */}
+            {monthlySnapshot && !isCompletelyEmpty && (
+                <div className={isLoading ? 'opacity-50 pointer-events-none transition-opacity' : 'transition-opacity'}>
+                    <PaymentsSummary validUnits={validUnits} />
+                    <ChargesTable
+                        displayUnits={displayUnits}
+                        buildingParam={buildingParam}
+                        statusParam={statusParam}
+                        onPaymentRecorded={handlePaymentRecorded}
+                    />
+                </div>
+            )}
 
-                            <Link
-                                href="/dashboard/payments/log"
-                                className="inline-flex items-center gap-2 bg-apro-green text-white px-6 py-3 rounded-xl font-bold hover:bg-green-600 transition-colors shadow-sm"
-                            >
-                                <FilePlus className="w-5 h-5" />
-                                צור חיובים לחודש זה
-                            </Link>
-                        </div>
-                    ) : (
-                        <div className={`${isLoading ? 'opacity-50 pointer-events-none' : 'opacity-100 transition-opacity duration-300'}`}>
-                            <PaymentsSummary validUnits={validUnits} />
-
-
-
-                            <ChargesTable
-                                displayUnits={displayUnits}
-                                buildingParam={buildingParam}
-                                statusParam={statusParam}
-                                onPaymentRecorded={handlePaymentRecorded}
-                            />
-                        </div>
-                    )}
-                </>
+            {/* Empty state — only after fetch completes and snapshot confirms no charges */}
+            {!isLoading && monthlySnapshot && isCompletelyEmpty && (
+                <div className="bg-white rounded-3xl border border-gray-100 p-24 text-center shadow-sm flex flex-col items-center">
+                    <div className="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center mb-6">
+                        <AlertCircle className="w-10 h-10 text-gray-300" />
+                    </div>
+                    <h2 className="text-2xl font-bold text-apro-navy mb-2">לא נוצרו חיובים לחודש זה</h2>
+                    <p className="text-gray-500 mb-8 max-w-sm">לא קיימות הגדרות גבייה או שלא הופקו מעולם חיובים בהיסטוריה לתקופה זו.</p>
+                    <Link
+                        href="/dashboard/payments/log"
+                        className="inline-flex items-center gap-2 bg-apro-green text-white px-6 py-3 rounded-xl font-bold hover:bg-green-600 transition-colors shadow-sm"
+                    >
+                        <FilePlus className="w-5 h-5" />
+                        צור חיובים לחודש זה
+                    </Link>
+                </div>
             )}
         </div>
     );

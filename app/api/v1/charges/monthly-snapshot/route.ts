@@ -159,7 +159,7 @@ export async function GET(req: Request) {
             const today = new Date();
             today.setHours(0, 0, 0, 0);
 
-            const is_overdue = !!(charge?.status === 'pending' || charge?.status === 'partial') &&
+            const is_overdue = !!charge?.status && ['pending', 'partial'].includes(charge.status) &&
                 !!(charge?.dueDate && new Date(charge.dueDate) < today);
 
             unitsByBuilding.get(u.buildingId).push({

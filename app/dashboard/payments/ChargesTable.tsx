@@ -2,7 +2,7 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
-import { TrendingUp, Send } from 'lucide-react';
+import { TrendingUp, Send, CheckCircle2, ChevronDown } from 'lucide-react';
 import ChargeDetailDrawer from '../buildings/[id]/ChargeDetailDrawer';
 import ReminderStatusBadge from '../../components/reminders/ReminderStatusBadge';
 import ReminderApprovalModal from '../../components/reminders/ReminderApprovalModal';
@@ -39,6 +39,11 @@ export default function ChargesTable({ displayUnits, buildingParam, statusParam,
     // Reminder modal state (bulk)
     const [reminderModalOpen, setReminderModalOpen] = useState(false);
 
+    // Bulk pay state
+    const [bulkPayMethod, setBulkPayMethod] = useState<'bank_transfer' | 'cash' | 'credit_card' | 'portal'>('bank_transfer');
+    const [bulkPayConfirming, setBulkPayConfirming] = useState(false);
+    const [bulkPayLoading, setBulkPayLoading] = useState(false);
+
     const formatMoney = (agorot: number) => {
         const ils = Math.round(agorot / 100);
         return new Intl.NumberFormat('he-IL', { style: 'currency', currency: 'ILS', maximumFractionDigits: 0 }).format(ils);
@@ -54,9 +59,8 @@ export default function ChargesTable({ displayUnits, buildingParam, statusParam,
         switch (status) {
             case 'paid':
                 return <span className="inline-flex px-3 py-1 rounded-full text-xs font-bold border bg-green-50 text-green-700 border-green-100">שולם</span>;
-            case 'partial':
-                return <span className="inline-flex px-3 py-1 rounded-full text-xs font-bold border bg-yellow-50 text-yellow-700 border-yellow-100">חלקי</span>;
             case 'pending':
+            case 'partial':
                 return <span className="inline-flex px-3 py-1 rounded-full text-xs font-bold border bg-gray-50 text-gray-700 border-gray-200">ממתין</span>;
             case 'waived':
                 return <span className="inline-flex px-3 py-1 rounded-full text-xs font-bold border bg-gray-50 text-gray-700 border-gray-200">מחוק</span>;
@@ -80,7 +84,7 @@ export default function ChargesTable({ displayUnits, buildingParam, statusParam,
         setDrawerPeriodMonth(row.period_month);
     };
 
-    // Eligible rows for selection (only pending/partial with a charge_id)
+    // Eligible rows for selection (only pending with a charge_id; partial is treated as pending in UI)
     const eligibleUnits = useMemo(
         () => displayUnits.filter(u => (u.status === 'pending' || u.status === 'partial') && u.charge_id),
         [displayUnits]
@@ -132,6 +136,40 @@ export default function ChargesTable({ displayUnits, buildingParam, statusParam,
         setSelectedChargeIds(new Set());
     };
 
+    const handleBulkPay = async () => {
+        setBulkPayLoading(true);
+        try {
+            const res = await fetch('/api/v1/charges/bulk-pay', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    chargeIds: Array.from(selectedChargeIds),
+                    payment_method: bulkPayMethod,
+                    paid_at: new Date().toISOString(),
+                }),
+            });
+            const json = await res.json();
+            if (!res.ok) throw new Error(json.error?.message || 'שגיאה בסימון תשלום');
+
+            // Update local snapshot for each settled charge
+            const settled = (json.data as Array<{ chargeId?: string; status: string }>).filter(r => r.status === 'ok' && r.chargeId);
+            if (onPaymentRecorded) {
+                for (const r of settled) {
+                    const unit = displayUnits.find(u => u.charge_id === r.chargeId);
+                    if (unit) onPaymentRecorded(r.chargeId!, 'paid', unit.amount_due);
+                }
+            }
+
+            setSelectedChargeIds(new Set());
+            setBulkPayConfirming(false);
+            router.refresh();
+        } catch (err: any) {
+            alert(err.message);
+        } finally {
+            setBulkPayLoading(false);
+        }
+    };
+
     // Grouping by building if "all" is selected
     const groupedCharges = useMemo(() => {
         if (buildingParam !== 'all') return null;
@@ -150,7 +188,6 @@ export default function ChargesTable({ displayUnits, buildingParam, statusParam,
     const statusOptions = [
         { value: 'all', label: 'הכל' },
         { value: 'paid', label: 'שולם' },
-        { value: 'partial', label: 'חלקי' },
         { value: 'pending', label: 'ממתין' },
         { value: 'overdue', label: 'באיחור' },
     ];
@@ -366,15 +403,62 @@ export default function ChargesTable({ displayUnits, buildingParam, statusParam,
                     <div className="pointer-events-auto flex items-center gap-4 bg-apro-navy text-white px-6 py-3.5 rounded-2xl shadow-2xl animate-in fade-in slide-in-from-bottom-4 duration-300">
                         <span className="font-medium text-sm">נבחרו {selectedChargeIds.size} חיובים</span>
                         <div className="w-px h-5 bg-white/20" />
+
+                        {/* Send reminder */}
                         <button
-                            onClick={() => setReminderModalOpen(true)}
-                            className="flex items-center gap-2 bg-apro-green hover:bg-emerald-500 text-white font-bold text-sm px-4 py-2 rounded-xl transition-colors"
+                            onClick={() => { setBulkPayConfirming(false); setReminderModalOpen(true); }}
+                            className="flex items-center gap-2 bg-white/10 hover:bg-white/20 text-white font-bold text-sm px-4 py-2 rounded-xl transition-colors"
                         >
                             <Send className="w-4 h-4" />
-                            שלח תזכורת לכולם
+                            שלח תזכורת
                         </button>
+
+                        <div className="w-px h-5 bg-white/20" />
+
+                        {/* Mark as paid — inline confirm */}
+                        {bulkPayConfirming ? (
+                            <div className="flex items-center gap-2">
+                                <div className="relative">
+                                    <select
+                                        value={bulkPayMethod}
+                                        onChange={(e) => setBulkPayMethod(e.target.value as any)}
+                                        className="appearance-none bg-white/10 text-white text-sm font-medium pl-7 pr-3 py-2 rounded-xl border border-white/20 focus:outline-none focus:border-apro-green cursor-pointer"
+                                    >
+                                        <option value="bank_transfer" className="text-gray-800">העברה בנקאית</option>
+                                        <option value="cash" className="text-gray-800">מזומן</option>
+                                        <option value="credit_card" className="text-gray-800">כרטיס אשראי</option>
+                                        <option value="portal" className="text-gray-800">פורטל</option>
+                                    </select>
+                                    <ChevronDown className="absolute left-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-white/60 pointer-events-none" />
+                                </div>
+                                <button
+                                    onClick={handleBulkPay}
+                                    disabled={bulkPayLoading}
+                                    className="flex items-center gap-2 bg-apro-green hover:bg-emerald-500 text-white font-bold text-sm px-4 py-2 rounded-xl transition-colors disabled:opacity-50"
+                                >
+                                    <CheckCircle2 className="w-4 h-4" />
+                                    {bulkPayLoading ? 'שומר...' : 'אישור'}
+                                </button>
+                                <button
+                                    onClick={() => setBulkPayConfirming(false)}
+                                    className="text-white/60 hover:text-white transition-colors text-sm font-medium"
+                                >
+                                    ביטול
+                                </button>
+                            </div>
+                        ) : (
+                            <button
+                                onClick={() => setBulkPayConfirming(true)}
+                                className="flex items-center gap-2 bg-apro-green hover:bg-emerald-500 text-white font-bold text-sm px-4 py-2 rounded-xl transition-colors"
+                            >
+                                <CheckCircle2 className="w-4 h-4" />
+                                סמן כשולם
+                            </button>
+                        )}
+
+                        <div className="w-px h-5 bg-white/20" />
                         <button
-                            onClick={() => setSelectedChargeIds(new Set())}
+                            onClick={() => { setSelectedChargeIds(new Set()); setBulkPayConfirming(false); }}
                             className="text-white/60 hover:text-white transition-colors text-sm font-medium"
                         >
                             בטל

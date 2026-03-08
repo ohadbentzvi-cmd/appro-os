@@ -161,15 +161,17 @@ export default function ChargeDetailDrawer({
                 setPayments(prev => [json.data, ...prev]);
             }
 
-            if (onPaymentSuccess && !editingPaymentId) {
-                // Only trigger new status if creating a new payment (since MVP is full amount only)
-                onPaymentSuccess('paid', amountDue);
+            if (!editingPaymentId) {
+                // New payment: close drawer first, then update parent state and refresh.
+                // Closing first prevents any flicker from concurrent state mutations.
+                onClose();
+                if (onPaymentSuccess) onPaymentSuccess('paid', amountDue);
+                router.refresh();
+                return;
             }
 
-            // Trigger next.js router refresh to update building charges:
+            // Edit case: update local payment list and return to view mode
             router.refresh();
-
-            // Return to view mode
             setIsFormMode(false);
             setEditingPaymentId(null);
             setFormDate(new Date().toISOString().split('T')[0]);

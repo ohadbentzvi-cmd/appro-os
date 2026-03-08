@@ -1,7 +1,6 @@
 import React from 'react';
 import { db, chargeGenerationLog } from '@apro/db';
 import { eq, desc } from 'drizzle-orm';
-import GenerateChargesWrapper from '../GenerateChargesWrapper';
 import { FileText, CalendarClock, ChevronRight } from 'lucide-react';
 import Link from 'next/link';
 
@@ -48,9 +47,6 @@ export default async function PaymentsLogPage() {
                 <div>
                     <h1 className="text-3xl font-bold text-apro-navy mb-1">היסטוריית הפקת חיובים</h1>
                     <p className="text-gray-500 font-medium">צפייה ביומן הפעלות הפקת חיובים במערכת</p>
-                </div>
-                <div className="mr-auto">
-                    <GenerateChargesWrapper />
                 </div>
             </div>
 

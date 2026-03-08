@@ -8,9 +8,10 @@ interface GenerateChargesModalProps {
     isOpen: boolean;
     onClose: () => void;
     onSuccess: () => void;
+    buildingId?: string;
 }
 
-export default function GenerateChargesModal({ isOpen, onClose, onSuccess }: GenerateChargesModalProps) {
+export default function GenerateChargesModal({ isOpen, onClose, onSuccess, buildingId }: GenerateChargesModalProps) {
     // Default to first day of next month
     const getDefaultMonthStr = () => {
         const d = new Date();
@@ -30,24 +31,40 @@ export default function GenerateChargesModal({ isOpen, onClose, onSuccess }: Gen
         setIsLoading(true);
 
         try {
-            const secret = process.env.NEXT_PUBLIC_CHARGE_GENERATION_SECRET;
-            if (!secret) throw new Error('הגדרות מערכת חסרות (חסר סוד)');
-
             const periodMonth = `${monthStr}-01`;
 
-            const res = await fetch('/api/v1/charges/generate', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'x-generate-secret': secret
-                },
-                body: JSON.stringify({ period_month: periodMonth }),
-            });
+            let res: Response;
+            if (buildingId) {
+                res = await fetch(`/api/v1/buildings/${buildingId}/generate-charges`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ period_month: periodMonth }),
+                });
+            } else {
+                const secret = process.env.NEXT_PUBLIC_CHARGE_GENERATION_SECRET;
+                if (!secret) throw new Error('הגדרות מערכת חסרות (חסר סוד)');
+                res = await fetch('/api/v1/charges/generate', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'x-generate-secret': secret
+                    },
+                    body: JSON.stringify({ period_month: periodMonth }),
+                });
+            }
 
             const { data, error: apiError } = await res.json();
 
             if (!res.ok || apiError) {
                 throw new Error(apiError?.message || 'שגיאה ביצירת החיובים');
+            }
+
+            if (data?.reason === 'no_config') {
+                throw new Error('NO_CONFIG');
+            }
+
+            if (data?.reason === 'no_units') {
+                throw new Error('NO_UNITS');
             }
 
             onSuccess();
@@ -94,12 +111,25 @@ export default function GenerateChargesModal({ isOpen, onClose, onSuccess }: Gen
 
                     <div className="p-6 overflow-y-auto custom-scrollbar">
                         <form id="generate-form" onSubmit={handleSubmit} className="space-y-4">
-                            {error && (
+                            {error === 'NO_CONFIG' ? (
+                                <div className="bg-amber-50 text-amber-800 p-4 rounded-xl text-sm flex items-start gap-2 border border-amber-200">
+                                    <AlertCircle className="w-4 h-4 mt-0.5 shrink-0 text-amber-500" />
+                                    <div>
+                                        <p className="font-bold mb-1">לא הוגדרו תצורות תשלום</p>
+                                        <p>כדי ליצור חיובים יש להגדיר תחילה סכום חודשי לפחות ליחידה אחת בבניין. ניתן לעשות זאת דרך עמוד היחידה.</p>
+                                    </div>
+                                </div>
+                            ) : error === 'NO_UNITS' ? (
+                                <div className="bg-amber-50 text-amber-800 p-4 rounded-xl text-sm flex items-start gap-2 border border-amber-200">
+                                    <AlertCircle className="w-4 h-4 mt-0.5 shrink-0 text-amber-500" />
+                                    <p className="font-bold">אין יחידות רשומות בבניין זה.</p>
+                                </div>
+                            ) : error ? (
                                 <div className="bg-red-50 text-red-600 p-4 rounded-xl text-sm flex items-start gap-2 border border-red-100">
                                     <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
                                     <span>{error}</span>
                                 </div>
-                            )}
+                            ) : null}
 
                             <div>
                                 <label className="block text-sm font-bold text-gray-700 mb-2">
@@ -118,7 +148,9 @@ export default function GenerateChargesModal({ isOpen, onClose, onSuccess }: Gen
                                 <div className="mt-4 p-3 bg-blue-50/50 rounded-xl border border-blue-100 flex items-start gap-2">
                                     <AlertCircle className="w-4 h-4 text-blue-500 mt-0.5 shrink-0" />
                                     <p className="text-sm text-blue-800 font-medium">
-                                        החיובים ייווצרו לכלל היחידות בכל הבניינים לתקופה הנבחרת
+                                        {buildingId
+                                            ? 'החיובים ייווצרו עבור יחידות הבניין הזה בלבד, לתקופה הנבחרת. יחידות שכבר קיבלו חיוב לא יושפעו.'
+                                            : 'החיובים ייווצרו לכלל היחידות בכל הבניינים לתקופה הנבחרת'}
                                     </p>
                                 </div>
                             </div>
@@ -136,7 +168,7 @@ export default function GenerateChargesModal({ isOpen, onClose, onSuccess }: Gen
                         <button
                             type="submit"
                             form="generate-form"
-                            disabled={isLoading}
+                            disabled={isLoading || error === 'NO_CONFIG' || error === 'NO_UNITS'}
                             className="px-8 py-2.5 text-sm font-bold bg-apro-green text-white rounded-xl shadow-lg shadow-apro-green/20 hover:bg-emerald-600 transition-colors disabled:opacity-50 flex items-center gap-2"
                         >
                             {isLoading ? (

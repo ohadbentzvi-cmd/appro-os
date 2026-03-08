@@ -5,7 +5,11 @@ import { useRouter } from 'next/navigation';
 import { Plus } from 'lucide-react';
 import GenerateChargesModal from '@/app/components/GenerateChargesModal';
 
-export default function GenerateChargesWrapper() {
+interface GenerateChargesWrapperProps {
+    buildingId?: string;
+}
+
+export default function GenerateChargesWrapper({ buildingId }: GenerateChargesWrapperProps) {
     const [isOpen, setIsOpen] = useState(false);
     const router = useRouter();
 
@@ -27,6 +31,7 @@ export default function GenerateChargesWrapper() {
                 isOpen={isOpen}
                 onClose={() => setIsOpen(false)}
                 onSuccess={handleSuccess}
+                buildingId={buildingId}
             />
         </>
     );

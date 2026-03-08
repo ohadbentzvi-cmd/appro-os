@@ -133,12 +133,9 @@ export default function PeopleList() {
                 ) : people.length === 0 ? (
                     <div className="p-20 text-center">
                         <Users className="w-16 h-16 text-gray-200 mx-auto mb-4" />
-                        <h3 className="text-lg font-bold text-gray-400">לא נמצאו אנשים במערכת</h3>
-                    </div>
-                ) : people.length === 0 ? (
-                    <div className="p-20 text-center">
-                        <Users className="w-16 h-16 text-gray-200 mx-auto mb-4" />
-                        <h3 className="text-lg font-bold text-gray-400">לא נמצאו תוצאות עבור "{searchTerm}"</h3>
+                        <h3 className="text-lg font-bold text-gray-400">
+                            {searchTerm ? `לא נמצאו תוצאות עבור "${searchTerm}"` : 'לא נמצאו אנשים במערכת'}
+                        </h3>
                     </div>
                 ) : (
                     <>
@@ -173,10 +170,26 @@ export default function PeopleList() {
                                                 {person.phone || '—'}
                                             </td>
                                             <td className="px-6 py-5">
-                                                {person.activeRolesCount > 0 ? (
-                                                    <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-apro-green/10 text-apro-green">
-                                                        {person.activeRolesCount} תפקידים
-                                                    </span>
+                                                {person.activeRoles && person.activeRoles.length > 0 ? (
+                                                    <div className="flex flex-wrap gap-1.5">
+                                                        {person.activeRoles.map((role: any, i: number) => {
+                                                            const isOwner = role.roleType === 'owner';
+                                                            return (
+                                                                <span
+                                                                    key={i}
+                                                                    className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold border whitespace-nowrap ${
+                                                                        isOwner
+                                                                            ? 'bg-blue-50 text-blue-700 border-blue-200'
+                                                                            : 'bg-orange-50 text-orange-700 border-orange-200'
+                                                                    }`}
+                                                                >
+                                                                    <span className="opacity-70">{isOwner ? 'בעלים' : 'שוכר'}</span>
+                                                                    <span className="w-px h-3 bg-current opacity-30" />
+                                                                    {role.buildingName || role.buildingAddress} / {role.unitNumber}
+                                                                </span>
+                                                            );
+                                                        })}
+                                                    </div>
                                                 ) : (
                                                     <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-500">
                                                         אין תפקידים

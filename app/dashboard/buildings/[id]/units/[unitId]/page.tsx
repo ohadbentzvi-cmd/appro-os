@@ -43,10 +43,38 @@ export default function UnitDetail() {
     // Edit Role Modal State
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [selectedRoleForEdit, setSelectedRoleForEdit] = useState<UnitRoleData | null>(null);
+    const [removingRoleId, setRemovingRoleId] = useState<string | null>(null);
 
     const handleEditClick = (role: UnitRoleData) => {
         setSelectedRoleForEdit(role);
         setIsEditModalOpen(true);
+    };
+
+    const handleRemoveRole = async (role: UnitRoleData) => {
+        const people = role.people;
+        const name = !people ? '-' : Array.isArray(people) ? (people[0]?.full_name || '-') : (people.full_name || '-');
+        if (!confirm(`האם להסיר את ${name} מהיחידה?`)) return;
+
+        setRemovingRoleId(role.id);
+        try {
+            const res = await fetch(`/api/v1/buildings/${id}/units/${unitId}/roles/${role.id}`, {
+                method: 'DELETE',
+            });
+            const json = await res.json();
+            if (!res.ok) throw new Error(json.error?.message || 'שגיאה בהסרת התפקיד');
+
+            // Move role from active to history locally
+            const today = new Date().toISOString().split('T')[0];
+            const ended = { ...role, effective_to: today };
+            setActiveRoles(prev => prev.filter(r => r.id !== role.id));
+            setHistoryRoles(prev => [ended, ...prev]);
+            setToastMessage('התפקיד הוסר בהצלחה');
+            setTimeout(() => setToastMessage(null), 3000);
+        } catch (err: any) {
+            alert(err.message);
+        } finally {
+            setRemovingRoleId(null);
+        }
     };
 
     useEffect(() => {
@@ -299,8 +327,12 @@ export default function UnitDetail() {
                                                 >
                                                     <Pencil className="w-4 h-4" />
                                                 </button>
-                                                <button disabled className="text-gray-400 bg-gray-100 px-3 py-1.5 rounded-lg text-sm font-medium cursor-not-allowed opacity-60">
-                                                    הסר
+                                                <button
+                                                    onClick={() => handleRemoveRole(role)}
+                                                    disabled={removingRoleId === role.id}
+                                                    className="text-red-600 hover:bg-red-50 border border-red-100 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                                >
+                                                    {removingRoleId === role.id ? '...' : 'הסר'}
                                                 </button>
                                             </div>
                                         </td>
