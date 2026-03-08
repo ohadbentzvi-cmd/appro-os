@@ -25,7 +25,8 @@ interface ReminderLogRow {
 
 interface Building {
     id: string;
-    address_street: string;
+    addressStreet: string;
+    addressCity: string;
 }
 
 const STATUS_OPTIONS = [
@@ -188,7 +189,7 @@ export default function RemindersLogPage() {
                             <select
                                 value={statusFilter}
                                 onChange={e => setStatusFilter(e.target.value)}
-                                className="appearance-none border border-gray-200 rounded-xl px-3 py-2 pr-8 text-sm font-medium text-gray-700 focus:outline-none focus:ring-2 focus:ring-apro-green/30 bg-white"
+                                className="appearance-none border border-gray-200 rounded-xl px-3 py-2 pl-8 text-sm font-medium text-gray-700 focus:outline-none focus:ring-2 focus:ring-apro-green/30 bg-white"
                             >
                                 {STATUS_OPTIONS.map(o => (
                                     <option key={o.value} value={o.value}>{o.label}</option>
@@ -206,11 +207,11 @@ export default function RemindersLogPage() {
                                 <select
                                     value={buildingFilter}
                                     onChange={e => setBuildingFilter(e.target.value)}
-                                    className="appearance-none border border-gray-200 rounded-xl px-3 py-2 pr-8 text-sm font-medium text-gray-700 focus:outline-none focus:ring-2 focus:ring-apro-green/30 bg-white"
+                                    className="appearance-none border border-gray-200 rounded-xl px-3 py-2 pl-8 text-sm font-medium text-gray-700 focus:outline-none focus:ring-2 focus:ring-apro-green/30 bg-white"
                                 >
                                     <option value="all">כל הבניינים</option>
                                     {buildings.map(b => (
-                                        <option key={b.id} value={b.id}>{b.address_street}</option>
+                                        <option key={b.id} value={b.id}>{b.addressStreet}{b.addressCity ? `, ${b.addressCity}` : ''}</option>
                                     ))}
                                 </select>
                                 <ChevronDown className="absolute left-2 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />

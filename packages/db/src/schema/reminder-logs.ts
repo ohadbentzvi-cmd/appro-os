@@ -12,6 +12,7 @@ export const reminderLogs = pgTable('reminder_logs', {
     recipientPhone: text('recipient_phone').notNull(),
     recipientNameUsed: text('recipient_name_used').notNull(),
     twilioMessageSid: text('twilio_message_sid'),
+    twilioTemplateSid: text('twilio_template_sid'),
     status: text('status', {
         enum: ['queued', 'sent', 'delivered', 'failed']
     }).notNull().default('queued'),

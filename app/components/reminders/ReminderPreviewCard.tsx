@@ -8,7 +8,10 @@ export interface PreviewItem {
     chargeId: string;
     unitIdentifier: string | null;
     buildingAddress: string | null;
+    buildingName: string | null;
     buildingId: string | null;
+    amountDue: number | null;
+    dueDate: string | null;
     recipientPersonId: string | null;
     recipientName: string | null;
     recipientPhone: string | null;

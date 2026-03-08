@@ -59,15 +59,18 @@ export default function GlobalFilterBar() {
     };
 
     const handlePrevMonth = () => {
-        const d = new Date(activeMonthStr);
-        d.setMonth(d.getMonth() - 1);
-        updateFilter(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`, buildingParam);
+        // Pure arithmetic — avoids UTC-parse bug when string is fed to new Date()
+        const [y, m] = activeMonthStr.split('-').map(Number);
+        const newMonth = m === 1 ? 12 : m - 1;
+        const newYear  = m === 1 ? y - 1 : y;
+        updateFilter(`${newYear}-${String(newMonth).padStart(2, '0')}-01`, buildingParam);
     };
 
     const handleNextMonth = () => {
-        const d = new Date(activeMonthStr);
-        d.setMonth(d.getMonth() + 1);
-        updateFilter(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`, buildingParam);
+        const [y, m] = activeMonthStr.split('-').map(Number);
+        const newMonth = m === 12 ? 1 : m + 1;
+        const newYear  = m === 12 ? y + 1 : y;
+        updateFilter(`${newYear}-${String(newMonth).padStart(2, '0')}-01`, buildingParam);
     };
 
     const handleBuildingChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -78,17 +81,20 @@ export default function GlobalFilterBar() {
         updateFilter(e.target.value, buildingParam);
     };
 
-    const activeDate = new Date(activeMonthStr);
-    const displayMonthName = ["ינואר", "פברואר", "מרץ", "אפריל", "מאי", "יוני", "יולי", "אוגוסט", "ספטמבר", "אוקטובר", "נובמבר", "דצמבר"][activeDate.getMonth()];
-    const displayYear = activeDate.getFullYear();
+    const MONTH_NAMES = ["ינואר", "פברואר", "מרץ", "אפריל", "מאי", "יוני", "יולי", "אוגוסט", "ספטמבר", "אוקטובר", "נובמבר", "דצמבר"];
 
-    // Generate recent months for dropdown
-    const monthOptions = [];
-    for (let i = -6; i <= 6; i++) {
-        const d = new Date(now.getFullYear(), now.getMonth() + i, 1);
-        const val = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`;
-        const label = `${["ינואר", "פברואר", "מרץ", "אפריל", "מאי", "יוני", "יולי", "אוגוסט", "ספטמבר", "אוקטובר", "נובמבר", "דצמבר"][d.getMonth()]} ${d.getFullYear()}`;
-        monthOptions.push({ val, label });
+    // Parse the active month from its YYYY-MM-01 string using the local-time constructor
+    // to avoid the UTC-midnight ±timezone shift that new Date("YYYY-MM-DD") causes.
+    const [activeYear, activeMonthNum] = activeMonthStr.split('-').map(Number);
+    const activeDate = new Date(activeYear, activeMonthNum - 1, 1);
+
+    // Generate months from January of last year through December of this year.
+    const monthOptions: { val: string; label: string }[] = [];
+    for (let year = now.getFullYear() - 1; year <= now.getFullYear(); year++) {
+        for (let month = 1; month <= 12; month++) {
+            const val = `${year}-${String(month).padStart(2, '0')}-01`;
+            monthOptions.push({ val, label: `${MONTH_NAMES[month - 1]} ${year}` });
+        }
     }
 
     return (

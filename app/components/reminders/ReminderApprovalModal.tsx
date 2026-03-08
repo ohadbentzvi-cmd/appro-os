@@ -2,11 +2,13 @@
 
 import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { X, ChevronRight, ChevronLeft, Loader2, AlertTriangle, Send } from 'lucide-react';
-import { AnimatePresence as AP } from 'motion/react';
+import { X, ChevronRight, ChevronLeft, Loader2, AlertTriangle, Send, MessageSquare } from 'lucide-react';
 import Link from 'next/link';
 import ReminderPreviewCard, { PreviewItem } from './ReminderPreviewCard';
 import { normalizeIsraeliPhone } from '@/lib/reminders/phone';
+import { formatHebrewMonthYear } from '@/lib/reminders/month';
+import { type WhatsappTemplate, type SystemField } from '@apro/db/src/schema';
+import { HEBREW_MONTHS } from '@/lib/reminders/templates';
 
 interface Props {
     isOpen: boolean;
@@ -34,6 +36,34 @@ function generateUUID(): string {
     });
 }
 
+/** Client-side preview substitution — uses real charge data from the PreviewItem. */
+function buildMessagePreview(
+    body: string,
+    mapping: Partial<Record<string, SystemField>>,
+    card: PreviewItem,
+    periodMonth: string,
+): string {
+    return body.replace(/\{\{(\d+)\}\}/g, (_, slot) => {
+        const field = mapping[slot];
+        switch (field) {
+            case 'recipient_name': return card.recipientName ?? '';
+            case 'period_month':   return formatHebrewMonthYear(periodMonth);
+            case 'building_name':  return card.buildingName ?? card.buildingAddress ?? '';
+            case 'unit_number':    return card.unitIdentifier ?? '';
+            case 'amount_due':      return card.amountDue != null
+                ? (card.amountDue / 100).toLocaleString('he-IL', { style: 'currency', currency: 'ILS' })
+                : '';
+            case 'due_date':        return card.dueDate
+                ? new Date(card.dueDate).toLocaleDateString('he-IL')
+                : '';
+            case 'due_month_name':  return card.dueDate
+                ? HEBREW_MONTHS[new Date(card.dueDate).getUTCMonth()]
+                : '';
+            default:               return `{{${slot}}}`;
+        }
+    });
+}
+
 export default function ReminderApprovalModal({ isOpen, onClose, onSent, chargeIds, periodMonth }: Props) {
     const [phase, setPhase] = useState<Phase>('loading');
     const [previewItems, setPreviewItems] = useState<PreviewItem[]>([]);
@@ -43,7 +73,10 @@ export default function ReminderApprovalModal({ isOpen, onClose, onSent, chargeI
     const [confirmed, setConfirmed] = useState(false);
     const [sendResults, setSendResults] = useState<Array<{ chargeId: string; status: string; reason?: string }>>([]);
 
-    // Fetch preview whenever modal opens
+    const [templates, setTemplates] = useState<WhatsappTemplate[]>([]);
+    const [selectedTemplateId, setSelectedTemplateId] = useState<string | undefined>(undefined);
+
+    // Fetch preview + templates whenever modal opens
     useEffect(() => {
         if (!isOpen || chargeIds.length === 0) return;
 
@@ -53,16 +86,27 @@ export default function ReminderApprovalModal({ isOpen, onClose, onSent, chargeI
         setPhoneOverrides({});
         setConfirmed(false);
         setSendResults([]);
+        setTemplates([]);
+        setSelectedTemplateId(undefined);
 
-        fetch('/api/v1/reminders/preview', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ chargeIds, periodMonth }),
-        })
-            .then(r => r.json())
-            .then(json => {
-                if (json.error) throw new Error(json.error);
-                setPreviewItems(json.data ?? []);
+        Promise.all([
+            fetch('/api/v1/reminders/preview', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ chargeIds, periodMonth }),
+            }).then(r => r.json()),
+            fetch('/api/v1/templates').then(r => r.json()),
+        ])
+            .then(([previewJson, templatesJson]) => {
+                if (previewJson.error) throw new Error(previewJson.error);
+                setPreviewItems(previewJson.data ?? []);
+
+                const loadedTemplates: WhatsappTemplate[] = templatesJson.data ?? [];
+                setTemplates(loadedTemplates);
+                // Pre-select the default template if one exists
+                const defaultTemplate = loadedTemplates.find(t => t.isDefault);
+                setSelectedTemplateId(defaultTemplate?.id);
+
                 setPhase('ready');
             })
             .catch(e => {
@@ -79,6 +123,12 @@ export default function ReminderApprovalModal({ isOpen, onClose, onSent, chargeI
     const blockedItems = previewItems.filter(p => p.blockReason !== null);
 
     const currentCard = sendableItems[cardIndex] ?? null;
+
+    const selectedTemplate = templates.find(t => t.id === selectedTemplateId) ?? null;
+    const mapping = (selectedTemplate?.variableMapping ?? {}) as Partial<Record<string, SystemField>>;
+    const hasPreview = selectedTemplate !== null &&
+        selectedTemplate.body.length > 0 &&
+        Object.keys(mapping).length > 0;
 
     const handlePhoneOverride = (chargeId: string, phone: string | null) => {
         setPhoneOverrides(prev => {
@@ -110,7 +160,7 @@ export default function ReminderApprovalModal({ isOpen, onClose, onSent, chargeI
             const res = await fetch('/api/v1/reminders/send', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ messages, bulkBatchId }),
+                body: JSON.stringify({ messages, bulkBatchId, templateId: selectedTemplateId }),
             });
             const json = await res.json();
             if (!res.ok) throw new Error(json.error ?? 'שגיאת שרת');
@@ -145,6 +195,7 @@ export default function ReminderApprovalModal({ isOpen, onClose, onSent, chargeI
                         animate={{ opacity: 1, scale: 1, y: 0 }}
                         exit={{ opacity: 0, scale: 0.97, y: 16 }}
                         transition={{ type: 'spring', damping: 30, stiffness: 300 }}
+                        dir="rtl"
                         className="fixed inset-x-4 top-[5vh] bottom-[5vh] sm:inset-x-auto sm:left-1/2 sm:-translate-x-1/2 sm:w-[520px] bg-white rounded-2xl shadow-2xl z-50 flex flex-col overflow-hidden"
                     >
                         {/* Header */}
@@ -190,6 +241,27 @@ export default function ReminderApprovalModal({ isOpen, onClose, onSent, chargeI
                             {/* Ready state */}
                             {(phase === 'ready' || phase === 'sending') && !fetchError && (
                                 <>
+                                    {/* Template selector (only when more than one template is available) */}
+                                    {templates.length > 1 && (
+                                        <div>
+                                            <label className="text-xs text-gray-400 font-medium block mb-1.5">
+                                                תבנית הודעה
+                                            </label>
+                                            <select
+                                                value={selectedTemplateId ?? ''}
+                                                onChange={e => setSelectedTemplateId(e.target.value || undefined)}
+                                                className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm font-medium text-gray-700 hover:border-apro-green focus:outline-none focus:ring-2 focus:ring-apro-green/30 transition-colors bg-white"
+                                            >
+                                                <option value="">ברירת מחדל (ללא תבנית מפורשת)</option>
+                                                {templates.map(t => (
+                                                    <option key={t.id} value={t.id}>
+                                                        {t.name}{t.isDefault ? ' ★' : ''}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                    )}
+
                                     {/* Blocked + duplicate warnings */}
                                     {(blockedItems.length > 0 || duplicateItems.length > 0) && (
                                         <div className="bg-red-50 border border-red-100 rounded-xl p-4 space-y-2">
@@ -241,6 +313,24 @@ export default function ReminderApprovalModal({ isOpen, onClose, onSent, chargeI
                                                 phoneOverride={phoneOverrides[currentCard.chargeId]}
                                                 onPhoneOverride={handlePhoneOverride}
                                             />
+
+                                            {/* Message body preview */}
+                                            {hasPreview && (
+                                                <div className="bg-gray-50 rounded-xl p-4 space-y-2">
+                                                    <p className="text-xs text-gray-400 font-medium flex items-center gap-1.5">
+                                                        <MessageSquare className="w-3.5 h-3.5" />
+                                                        תצוגה מקדימה של ההודעה
+                                                    </p>
+                                                    <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">
+                                                        {buildMessagePreview(
+                                                            selectedTemplate!.body,
+                                                            mapping,
+                                                            currentCard,
+                                                            periodMonth,
+                                                        )}
+                                                    </p>
+                                                </div>
+                                            )}
 
                                             {/* Carousel nav */}
                                             {sendableItems.length > 1 && (
@@ -336,7 +426,7 @@ export default function ReminderApprovalModal({ isOpen, onClose, onSent, chargeI
                                         : <>
                                             <Send className="w-4 h-4" />
                                             אשר ושלח {sendableItems.length} הודעות
-                                        </>
+                                          </>
                                     }
                                 </button>
                                 <button

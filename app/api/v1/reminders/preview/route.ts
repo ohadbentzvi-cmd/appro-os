@@ -34,7 +34,10 @@ export async function POST(req: NextRequest) {
                 unitId: units.id,
                 unitNumber: units.unitNumber,
                 buildingAddress: buildings.addressStreet,
+                buildingName: buildings.name,
                 buildingId: buildings.id,
+                amountDue: charges.amountDue,
+                dueDate: charges.dueDate,
                 personId: people.id,
                 whatsappName: people.whatsappName,
                 phone: people.phone,
@@ -94,7 +97,10 @@ export async function POST(req: NextRequest) {
                     chargeId,
                     unitIdentifier: null,
                     buildingAddress: null,
+                    buildingName: null,
                     buildingId: null,
+                    amountDue: null,
+                    dueDate: null,
                     recipientPersonId: null,
                     recipientName: null,
                     recipientPhone: null,
@@ -107,6 +113,13 @@ export async function POST(req: NextRequest) {
 
             const lastReminder = lastReminderByCharge.get(chargeId) ?? null;
 
+            // Shared charge-level fields available for all row-present branches
+            const chargeFields = {
+                buildingName: row.buildingName,
+                amountDue: row.amountDue,
+                dueDate: row.dueDate,
+            };
+
             // Guard: no fee payer assigned at all
             if (!row.personId) {
                 return {
@@ -114,6 +127,7 @@ export async function POST(req: NextRequest) {
                     unitIdentifier: row.unitNumber,
                     buildingAddress: row.buildingAddress,
                     buildingId: row.buildingId,
+                    ...chargeFields,
                     recipientPersonId: null,
                     recipientName: null,
                     recipientPhone: null,
@@ -131,6 +145,7 @@ export async function POST(req: NextRequest) {
                     unitIdentifier: row.unitNumber,
                     buildingAddress: row.buildingAddress,
                     buildingId: row.buildingId,
+                    ...chargeFields,
                     recipientPersonId: row.personId,
                     recipientName: null,
                     recipientPhone: row.phone ?? null,
@@ -148,6 +163,7 @@ export async function POST(req: NextRequest) {
                     unitIdentifier: row.unitNumber,
                     buildingAddress: row.buildingAddress,
                     buildingId: row.buildingId,
+                    ...chargeFields,
                     recipientPersonId: row.personId,
                     recipientName: row.whatsappName,
                     recipientPhone: null,
@@ -166,6 +182,7 @@ export async function POST(req: NextRequest) {
                     unitIdentifier: row.unitNumber,
                     buildingAddress: row.buildingAddress,
                     buildingId: row.buildingId,
+                    ...chargeFields,
                     recipientPersonId: row.personId,
                     recipientName: row.whatsappName,
                     recipientPhone: row.phone,
@@ -186,6 +203,7 @@ export async function POST(req: NextRequest) {
                     unitIdentifier: row.unitNumber,
                     buildingAddress: row.buildingAddress,
                     buildingId: row.buildingId,
+                    ...chargeFields,
                     recipientPersonId: row.personId,
                     recipientName: row.whatsappName,
                     recipientPhone: normalizedPhone,
@@ -205,6 +223,7 @@ export async function POST(req: NextRequest) {
                 unitIdentifier: row.unitNumber,
                 buildingAddress: row.buildingAddress,
                 buildingId: row.buildingId,
+                ...chargeFields,
                 recipientPersonId: row.personId,
                 recipientName: row.whatsappName,
                 recipientPhone: normalizedPhone,
