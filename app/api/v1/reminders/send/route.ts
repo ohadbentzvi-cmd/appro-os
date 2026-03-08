@@ -10,14 +10,7 @@ import { reminderSendSchema } from '@/lib/api/schemas';
 import { normalizeIsraeliPhone } from '@/lib/reminders/phone';
 import { formatHebrewMonthYear } from '@/lib/reminders/month';
 
-const TWILIO_ACCOUNT_SID = process.env.TWILIO_ACCOUNT_SID;
-const TWILIO_AUTH_TOKEN = process.env.TWILIO_AUTH_TOKEN;
-const TWILIO_FROM = process.env.TWILIO_WHATSAPP_FROM;
 const TWILIO_TEMPLATE_SID = 'HXfcc7c191dbf0377c007ea43633541d5f';
-
-if (!TWILIO_ACCOUNT_SID || !TWILIO_AUTH_TOKEN || !TWILIO_FROM) {
-    throw new Error('Missing required Twilio env vars: TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_WHATSAPP_FROM');
-}
 
 export async function POST(req: NextRequest) {
     try {
@@ -33,6 +26,13 @@ export async function POST(req: NextRequest) {
             )
         );
         if (!role) return errorResponse('Forbidden', 403);
+
+        const TWILIO_ACCOUNT_SID = process.env.TWILIO_ACCOUNT_SID;
+        const TWILIO_AUTH_TOKEN = process.env.TWILIO_AUTH_TOKEN;
+        const TWILIO_FROM = process.env.TWILIO_WHATSAPP_FROM;
+        if (!TWILIO_ACCOUNT_SID || !TWILIO_AUTH_TOKEN || !TWILIO_FROM) {
+            return errorResponse('Twilio is not configured on this server', 503);
+        }
 
         const valid = await validateBody(req, reminderSendSchema);
         if ('error' in valid) return valid.error;
