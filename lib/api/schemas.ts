@@ -19,9 +19,26 @@ export const createPersonSchema = z.object({
     fullName: z.string().min(1),
     email: z.string().email().nullable().optional(),
     phone: z.string().optional(),
+    whatsappName: z.string().optional(),
 })
 
 export const updatePersonSchema = createPersonSchema.partial()
+
+export const reminderPreviewSchema = z.object({
+    chargeIds: z.array(z.string().uuid()).min(1).max(100),
+    periodMonth: z.string().regex(/^\d{4}-\d{2}-01$/, 'Must be YYYY-MM-01 format'),
+})
+
+export const reminderSendSchema = z.object({
+    messages: z.array(z.object({
+        chargeId: z.string().uuid(),
+        recipientPhone: z.string().min(1),
+        recipientName: z.string().min(1),
+        recipientPersonId: z.string().uuid().nullable(),
+        periodMonth: z.string().regex(/^\d{4}-\d{2}-01$/, 'Must be YYYY-MM-01 format'),
+    })).min(1).max(100),
+    bulkBatchId: z.string().uuid().optional(),
+})
 
 export const createUnitRoleSchema = z.object({
     personId: z.string().uuid(),

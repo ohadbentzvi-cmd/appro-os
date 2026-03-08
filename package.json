@@ -10,6 +10,7 @@
     "db:generate": "pnpm --filter @apro/db db:generate",
     "db:migrate": "pnpm --filter @apro/db db:migrate",
     "db:apply-manual": "pnpm --filter @apro/db db:apply-manual",
+    "db:deploy": "pnpm --filter @apro/db db:deploy",
     "test": "vitest run"
   },
   "dependencies": {
@@ -33,6 +34,7 @@
     "react-dom": "19.2.3",
     "react-hook-form": "^7.71.2",
     "tailwind-merge": "^3.5.0",
+    "twilio": "^5.12.2",
     "zod": "^4.3.6"
   },
   "devDependencies": {

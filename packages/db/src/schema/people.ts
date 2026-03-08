@@ -7,5 +7,6 @@ export const people = pgTable('people', {
     fullName: text('full_name').notNull(),
     email: text('email'),
     phone: text('phone'),
+    whatsappName: text('whatsapp_name'),
     createdAt: timestamp('created_at').defaultNow().notNull(),
 });

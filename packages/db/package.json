@@ -6,7 +6,8 @@
         "db:generate": "drizzle-kit generate",
         "db:migrate": "drizzle-kit migrate",
         "db:studio": "drizzle-kit studio",
-        "db:apply-manual": "npx tsx src/apply-sql.ts"
+        "db:apply-manual": "npx tsx src/apply-sql.ts",
+        "db:deploy": "drizzle-kit migrate && npx tsx src/apply-sql.ts"
     },
     "dependencies": {
         "drizzle-orm": "latest",

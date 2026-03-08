@@ -6,7 +6,7 @@ import PaymentsSummary from './PaymentsSummary';
 import GlobalFilterBar from './GlobalFilterBar';
 import ChargesTable from './ChargesTable';
 
-import { MoreVertical, History, Loader2, AlertCircle, FilePlus } from 'lucide-react';
+import { MoreVertical, History, Loader2, AlertCircle, FilePlus, MessageSquare } from 'lucide-react';
 import Link from 'next/link';
 import { MonthlySnapshot, BuildingSnapshot, filterByBuilding, flattenUnits, filterByStatus } from '../../../lib/payments/utils';
 
@@ -119,6 +119,13 @@ function PaymentsDashboardContent() {
                         >
                             <History className="w-4 h-4" />
                             היסטוריית הפקת חיובים
+                        </Link>
+                        <Link
+                            href="/dashboard/payments/reminders"
+                            className="flex items-center gap-2 px-4 py-3 text-sm font-bold text-gray-600 hover:text-apro-navy hover:bg-gray-50 transition-colors first:rounded-t-xl last:rounded-b-xl"
+                        >
+                            <MessageSquare className="w-4 h-4" />
+                            יומן תזכורות
                         </Link>
                     </div>
                 </div>

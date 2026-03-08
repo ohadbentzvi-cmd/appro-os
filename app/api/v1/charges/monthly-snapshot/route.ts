@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { db } from '@apro/db';
-import { charges, units, buildings, unitPaymentConfig, unitRoles, people } from '@apro/db/src/schema';
-import { eq, and, asc, isNull } from 'drizzle-orm';
+import { charges, units, buildings, unitPaymentConfig, unitRoles, people, reminderLogs } from '@apro/db/src/schema';
+import { eq, and, asc, isNull, inArray, desc } from 'drizzle-orm';
 import { getServerUser } from '@/lib/supabase/server';
 
 export const dynamic = 'force-dynamic';
@@ -72,6 +72,7 @@ export async function GET(req: Request) {
         const activeFeePayers = await db.select({
             unitId: unitRoles.unitId,
             roleType: unitRoles.roleType,
+            personId: people.id,
             fullName: people.fullName,
             phone: people.phone
         })
@@ -88,6 +89,36 @@ export async function GET(req: Request) {
         const feePayersByUnit = new Map();
         for (const fp of activeFeePayers) {
             feePayersByUnit.set(fp.unitId, fp);
+        }
+
+        // 5. Fetch the latest reminder log per charge for this period's charges
+        const chargeIds = allCharges.map(c => c.id);
+        const lastReminderByCharge = new Map<string, { sentAt: string; status: string }>();
+
+        if (chargeIds.length > 0) {
+            const latestReminders = await db
+                .selectDistinctOn([reminderLogs.chargeId], {
+                    chargeId: reminderLogs.chargeId,
+                    status: reminderLogs.status,
+                    sentAt: reminderLogs.sentAt,
+                })
+                .from(reminderLogs)
+                .where(
+                    and(
+                        eq(reminderLogs.tenantId, tenant_id),
+                        inArray(reminderLogs.chargeId, chargeIds),
+                    )
+                )
+                .orderBy(reminderLogs.chargeId, desc(reminderLogs.sentAt));
+
+            for (const r of latestReminders) {
+                if (r.chargeId && r.sentAt) {
+                    lastReminderByCharge.set(r.chargeId, {
+                        sentAt: r.sentAt.toISOString(),
+                        status: r.status,
+                    });
+                }
+            }
         }
 
         let totalUnits = 0;
@@ -143,7 +174,9 @@ export async function GET(req: Request) {
                 is_overdue: is_overdue,
                 fee_payer_name: feePayer?.fullName || null,
                 fee_payer_role: translatedRole,
-                fee_payer_phone: feePayer?.phone || null
+                fee_payer_phone: feePayer?.phone || null,
+                fee_payer_person_id: feePayer?.personId || null,
+                last_reminder: charge?.id ? (lastReminderByCharge.get(charge.id) ?? null) : null,
             });
         }
 
