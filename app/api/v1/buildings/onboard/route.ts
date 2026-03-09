@@ -109,6 +109,7 @@ export async function POST(req: NextRequest) {
                     numFloors: data.building.floors ?? 1,
                     numUnits: data.units.length,
                     builtYear: data.building.year_built,
+                    billingDay: data.building.billing_day ?? 10,
                 })
                 .returning({ id: buildings.id });
 

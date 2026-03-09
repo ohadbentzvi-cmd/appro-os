@@ -36,6 +36,13 @@
       "when": 1772996738341,
       "tag": "0004_organic_madripoor",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1773064596372,
+      "tag": "0005_opposite_shatterstar",
+      "breakpoints": true
     }
   ]
 }

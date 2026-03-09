@@ -12,6 +12,7 @@ interface EditBuildingModalProps {
         addressStreet?: string | null;
         addressCity?: string | null;
         numFloors?: number | null;
+        billingDay?: number | null;
     } | null;
     onSuccess: (updated: any) => void;
 }
@@ -20,6 +21,7 @@ export default function EditBuildingModal({ isOpen, onClose, building, onSuccess
     const [addressStreet, setAddressStreet] = useState('');
     const [addressCity, setAddressCity] = useState('');
     const [numFloors, setNumFloors] = useState('');
+    const [billingDay, setBillingDay] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
@@ -28,6 +30,7 @@ export default function EditBuildingModal({ isOpen, onClose, building, onSuccess
             setAddressStreet(building.addressStreet || '');
             setAddressCity(building.addressCity || '');
             setNumFloors(building.numFloors ? String(building.numFloors) : '');
+            setBillingDay(building.billingDay ? String(building.billingDay) : '10');
             setError(null);
         }
     }, [isOpen, building]);
@@ -35,6 +38,12 @@ export default function EditBuildingModal({ isOpen, onClose, building, onSuccess
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!building) return;
+
+        const billingDayNum = billingDay ? parseInt(billingDay, 10) : null;
+        if (billingDayNum !== null && (isNaN(billingDayNum) || billingDayNum < 1 || billingDayNum > 28)) {
+            setError('יום החיוב חייב להיות בין 1 ל-28');
+            return;
+        }
 
         setIsLoading(true);
         setError(null);
@@ -47,6 +56,7 @@ export default function EditBuildingModal({ isOpen, onClose, building, onSuccess
                     address: addressStreet || undefined,
                     city: addressCity || undefined,
                     floors: numFloors ? parseInt(numFloors, 10) : undefined,
+                    billingDay: billingDay ? parseInt(billingDay, 10) : undefined,
                 }),
             });
 
@@ -134,6 +144,20 @@ export default function EditBuildingModal({ isOpen, onClose, building, onSuccess
                                     className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-apro-navy focus:outline-none focus:ring-2 focus:ring-apro-green/20 focus:border-apro-green transition-all"
                                     placeholder="6"
                                 />
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-bold text-gray-700 mb-2">יום חיוב בחודש</label>
+                                <input
+                                    type="number"
+                                    min="1"
+                                    max="28"
+                                    value={billingDay}
+                                    onChange={(e) => setBillingDay(e.target.value)}
+                                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-apro-navy focus:outline-none focus:ring-2 focus:ring-apro-green/20 focus:border-apro-green transition-all"
+                                    placeholder="10"
+                                />
+                                <p className="text-xs text-gray-400 mt-1">ערך בין 1 ל-28. משפיע רק על חיובים עתידיים.</p>
                             </div>
                         </form>
 

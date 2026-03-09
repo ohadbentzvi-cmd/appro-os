@@ -5,6 +5,7 @@ export const createBuildingSchema = z.object({
     address: z.string().min(1),
     city: z.string().min(1),
     floors: z.number().int().positive(),
+    billingDay: z.number().int().min(1).max(28).optional(),
 })
 
 export const updateBuildingSchema = createBuildingSchema.partial()

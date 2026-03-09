@@ -103,9 +103,10 @@ export async function POST(
                 u.id,
                 ${period_month}::date,
                 upc.monthly_amount,
-                (date_trunc('month', ${period_month}::date) + interval '1 month' - interval '1 day')::date,
+                (date_trunc('month', ${period_month}::date) + ((b.billing_day - 1) * interval '1 day'))::date,
                 'pending'
             FROM units u
+            JOIN buildings b ON b.id = u.building_id
             JOIN unit_payment_config upc
                 ON upc.unit_id = u.id
                AND upc.tenant_id = ${tenantId}::uuid

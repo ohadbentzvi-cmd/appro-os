@@ -280,6 +280,12 @@ export default function BuildingDetail() {
                                                 {building.numUnits || '0'}
                                             </div>
                                         </div>
+                                        <div className="flex-1">
+                                            <label className="block text-sm font-semibold text-gray-500 mb-2">יום חיוב</label>
+                                            <div className="w-full bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 text-gray-700 font-bold text-center">
+                                                {building.billingDay ?? 10}
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>

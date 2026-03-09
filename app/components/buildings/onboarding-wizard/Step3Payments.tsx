@@ -137,6 +137,31 @@ export function Step3Payments({ wizard }: { wizard: ReturnType<typeof useWizardS
                 <p className="text-sm text-gray-500 mt-1">קבע את סכום דמי הניהול החודשי לכל דירה.</p>
             </div>
 
+            {/* Billing day */}
+            <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
+                <label className="block text-sm font-semibold text-gray-700 mb-2">יום חיוב בחודש</label>
+                <div className="flex items-center gap-4">
+                    <input
+                        type="number"
+                        min={1}
+                        max={28}
+                        value={wizard.building.billing_day ?? 10}
+                        onChange={(e) => {
+                            if (e.target.value === '') {
+                                wizard.setBuilding({ ...wizard.building, billing_day: 10 });
+                                return;
+                            }
+                            const val = parseInt(e.target.value, 10);
+                            if (!isNaN(val) && val >= 1 && val <= 28) {
+                                wizard.setBuilding({ ...wizard.building, billing_day: val });
+                            }
+                        }}
+                        className="w-28 bg-gray-50 border border-gray-200 rounded-xl py-3 px-4 focus:outline-none focus:ring-2 focus:ring-apro-green/50 focus:border-apro-green transition-all text-apro-navy font-bold"
+                    />
+                    <p className="text-sm text-gray-400">יום בחודש שבו יופקו חיובים (1–28)</p>
+                </div>
+            </div>
+
             {/* Bulk amount setter */}
             <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm flex flex-col md:flex-row gap-4 items-end">
                 <div className="flex-1 w-full">
