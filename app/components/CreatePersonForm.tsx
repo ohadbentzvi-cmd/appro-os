@@ -19,6 +19,7 @@ export default function CreatePersonForm({ onSuccess, onCancel }: CreatePersonFo
     const [newName, setNewName] = useState('');
     const [newEmail, setNewEmail] = useState('');
     const [newPhone, setNewPhone] = useState('');
+    const [newWhatsappName, setNewWhatsappName] = useState('');
     const [isCreating, setIsCreating] = useState(false);
     const [createError, setCreateError] = useState<string | null>(null);
 
@@ -50,7 +51,8 @@ export default function CreatePersonForm({ onSuccess, onCancel }: CreatePersonFo
                 body: JSON.stringify({
                     fullName: newName,
                     email: newEmail || null,
-                    phone: newPhone
+                    phone: newPhone,
+                    whatsappName: newWhatsappName || undefined,
                 })
             });
 
@@ -73,7 +75,7 @@ export default function CreatePersonForm({ onSuccess, onCancel }: CreatePersonFo
             }
         } catch (error: any) {
             console.error('Create person error:', error);
-            setCreateError('אירעה שגיאה ביצירת אדם. אולי האימייל כבר קיים?');
+            setCreateError('אירעה שגיאה ביצירת אדם. אולי מספר הטלפון כבר קיים?');
         } finally {
             setIsCreating(false);
         }
@@ -117,6 +119,17 @@ export default function CreatePersonForm({ onSuccess, onCancel }: CreatePersonFo
                     className="w-full border border-gray-200 rounded-lg p-2.5 focus:outline-none focus:ring-2 focus:ring-apro-green/50"
                     required
                     dir="ltr"
+                />
+            </div>
+            <div>
+                <label className="block text-sm font-semibold text-gray-600 mb-1">שם להודעות אוטומטיות</label>
+                <p className="text-xs text-gray-400 mb-1.5">השם שיופיע בהודעת הוואטסאפ</p>
+                <input
+                    type="text"
+                    value={newWhatsappName}
+                    onChange={e => setNewWhatsappName(e.target.value)}
+                    placeholder="לדוגמה: יונתן"
+                    className="w-full border border-gray-200 rounded-lg p-2.5 focus:outline-none focus:ring-2 focus:ring-apro-green/50"
                 />
             </div>
 

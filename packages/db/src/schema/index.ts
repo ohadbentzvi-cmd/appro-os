@@ -8,6 +8,8 @@ export * from './payment-config'
 export * from './charges'
 export * from './payments'
 export * from './charge-generation-log'
+export * from './reminder-logs'
+export * from './whatsapp-templates'
 
 import { tenants } from './tenants'
 import { buildings } from './buildings'
@@ -19,6 +21,8 @@ import { unitPaymentConfig } from './payment-config'
 import { charges } from './charges'
 import { payments } from './payments'
 import { chargeGenerationLog } from './charge-generation-log'
+import { reminderLogs } from './reminder-logs'
+import { whatsappTemplates } from './whatsapp-templates'
 
 export type Tenant = typeof tenants.$inferSelect
 export type NewTenant = typeof tenants.$inferInsert
@@ -49,3 +53,9 @@ export type NewPayment = typeof payments.$inferInsert
 
 export type ChargeGenerationLog = typeof chargeGenerationLog.$inferSelect
 export type NewChargeGenerationLog = typeof chargeGenerationLog.$inferInsert
+
+export type ReminderLog = typeof reminderLogs.$inferSelect
+export type NewReminderLog = typeof reminderLogs.$inferInsert
+
+export type WhatsappTemplate = typeof whatsappTemplates.$inferSelect
+export type NewWhatsappTemplate = typeof whatsappTemplates.$inferInsert

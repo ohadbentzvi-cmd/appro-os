@@ -1,9 +1,11 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { X, Loader2, CreditCard, Calendar, FileText, Edit2 } from 'lucide-react';
+import { X, Loader2, CreditCard, Calendar, FileText, Edit2, Send } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useRouter } from 'next/navigation';
+import ReminderStatusBadge from '@/app/components/reminders/ReminderStatusBadge';
+import ReminderApprovalModal from '@/app/components/reminders/ReminderApprovalModal';
 
 interface PaymentHistoryRow {
     id: string;
@@ -24,6 +26,9 @@ interface ChargeDetailDrawerProps {
     feePayerName?: string | null;
     feePayerRole?: string | null;
     feePayerPhone?: string | null;
+    feePayerPersonId?: string | null;
+    lastReminder?: { sentAt: string; status: string } | null;
+    periodMonth?: string;
     onPaymentSuccess?: (newStatus: string, newAmountPaid: number) => void;
 }
 
@@ -38,12 +43,16 @@ export default function ChargeDetailDrawer({
     feePayerName,
     feePayerRole,
     feePayerPhone,
+    feePayerPersonId,
+    lastReminder,
+    periodMonth,
     onPaymentSuccess
 }: ChargeDetailDrawerProps) {
     const router = useRouter();
     const [payments, setPayments] = useState<PaymentHistoryRow[]>([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [reminderModalOpen, setReminderModalOpen] = useState(false);
 
     // Form State
     const [isFormMode, setIsFormMode] = useState(false);
@@ -152,15 +161,17 @@ export default function ChargeDetailDrawer({
                 setPayments(prev => [json.data, ...prev]);
             }
 
-            if (onPaymentSuccess && !editingPaymentId) {
-                // Only trigger new status if creating a new payment (since MVP is full amount only)
-                onPaymentSuccess('paid', amountDue);
+            if (!editingPaymentId) {
+                // New payment: close drawer first, then update parent state and refresh.
+                // Closing first prevents any flicker from concurrent state mutations.
+                onClose();
+                if (onPaymentSuccess) onPaymentSuccess('paid', amountDue);
+                router.refresh();
+                return;
             }
 
-            // Trigger next.js router refresh to update building charges:
+            // Edit case: update local payment list and return to view mode
             router.refresh();
-
-            // Return to view mode
             setIsFormMode(false);
             setEditingPaymentId(null);
             setFormDate(new Date().toISOString().split('T')[0]);
@@ -174,6 +185,7 @@ export default function ChargeDetailDrawer({
     };
 
     return (
+        <>
         <AnimatePresence>
             {isOpen && (
                 <>
@@ -207,6 +219,7 @@ export default function ChargeDetailDrawer({
                                             {feePayerPhone && <span className="text-gray-500 mr-2 text-xs" dir="ltr">{feePayerPhone}</span>}
                                         </p>
                                     )}
+                                    <ReminderStatusBadge lastReminder={lastReminder ?? null} />
                                 </div>
                             </div>
                             <button
@@ -355,13 +368,24 @@ export default function ChargeDetailDrawer({
                         {/* Footer Actions */}
                         <div className="p-6 border-t border-gray-100 bg-white">
                             {!isFormMode ? (
-                                <button
-                                    onClick={() => setIsFormMode(true)}
-                                    disabled={status !== 'pending'}
-                                    className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed bg-apro-green text-white hover:bg-green-600 shadow-sm"
-                                >
-                                    רשום תשלום
-                                </button>
+                                <div className="flex gap-3">
+                                    <button
+                                        onClick={() => setIsFormMode(true)}
+                                        disabled={status !== 'pending'}
+                                        className="flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-xl font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed bg-apro-green text-white hover:bg-green-600 shadow-sm"
+                                    >
+                                        רשום תשלום
+                                    </button>
+                                    {(status === 'pending' || status === 'partial') && chargeId && (
+                                        <button
+                                            onClick={() => setReminderModalOpen(true)}
+                                            className="flex items-center justify-center gap-2 py-3 px-4 rounded-xl font-bold transition-all bg-white border border-gray-200 text-apro-navy hover:bg-gray-50 shadow-sm"
+                                        >
+                                            <Send className="w-4 h-4" />
+                                            תזכורת
+                                        </button>
+                                    )}
+                                </div>
                             ) : (
                                 <div className="flex gap-3">
                                     <button
@@ -388,5 +412,16 @@ export default function ChargeDetailDrawer({
                 </>
             )}
         </AnimatePresence>
+
+        {chargeId && (
+            <ReminderApprovalModal
+                isOpen={reminderModalOpen}
+                onClose={() => setReminderModalOpen(false)}
+                onSent={() => { router.refresh(); setReminderModalOpen(false); }}
+                chargeIds={[chargeId]}
+                periodMonth={periodMonth ?? ''}
+            />
+        )}
+        </>
     );
 }

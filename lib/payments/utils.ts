@@ -11,6 +11,11 @@ export interface ChargeUnit {
     fee_payer_name: string | null;
     fee_payer_role: string | null;
     fee_payer_phone: string | null;
+    fee_payer_person_id: string | null;
+    last_reminder: {
+        sentAt: string;
+        status: 'queued' | 'sent' | 'delivered' | 'failed';
+    } | null;
 }
 
 export interface BuildingSnapshot {

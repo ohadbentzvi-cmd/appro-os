@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
-import { ChevronLeft, Loader2, AlertCircle, Building2, ChevronRight, User, Mail, Phone, Check } from 'lucide-react';
+import { ChevronLeft, Loader2, AlertCircle, Building2, ChevronRight, User, Mail, Phone, Check, MessageCircle, Pencil, X } from 'lucide-react';
 import { Person, UnitRole, Unit, Building } from '@/lib/supabase/types';
 import AssignUnitModal from '@/app/components/AssignUnitModal';
 
@@ -41,6 +41,12 @@ export default function PersonDetail() {
     // Modal State
     const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
     const [showSuccessToast, setShowSuccessToast] = useState(false);
+
+    // Inline edit state for whatsapp_name
+    const [isEditingWhatsapp, setIsEditingWhatsapp] = useState(false);
+    const [whatsappInput, setWhatsappInput] = useState('');
+    const [whatsappSaving, setWhatsappSaving] = useState(false);
+    const [whatsappError, setWhatsappError] = useState<string | null>(null);
 
     const fetchPersonDetail = async () => {
         try {
@@ -80,6 +86,7 @@ export default function PersonDetail() {
                 full_name: data.fullName,
                 email: data.email,
                 phone: data.phone,
+                whatsapp_name: data.whatsappName ?? null,
                 created_at: data.createdAt,
                 unit_roles: mappedRoles
             };
@@ -98,6 +105,26 @@ export default function PersonDetail() {
             fetchPersonDetail();
         }
     }, [id]);
+
+    const handleWhatsappSave = async () => {
+        setWhatsappSaving(true);
+        setWhatsappError(null);
+        try {
+            const res = await fetch(`/api/v1/people/${id}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ whatsappName: whatsappInput.trim() || null }),
+            });
+            if (!res.ok) throw new Error('שגיאה בשמירה');
+            const { data } = await res.json();
+            setPerson(prev => prev ? { ...prev, whatsapp_name: data.whatsappName ?? null } : prev);
+            setIsEditingWhatsapp(false);
+        } catch {
+            setWhatsappError('שגיאה בשמירה, נסה שוב');
+        } finally {
+            setWhatsappSaving(false);
+        }
+    };
 
     if (loading) {
         return (
@@ -187,6 +214,56 @@ export default function PersonDetail() {
                         <div className="w-full bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 text-gray-700 font-bold flex justify-end" dir="ltr">
                             {person.phone || '—'}
                         </div>
+                    </div>
+                    <div>
+                        <label className="flex items-center gap-2 text-sm font-semibold text-gray-500 mb-2">
+                            <MessageCircle className="w-4 h-4" /> שם להודעות אוטומטיות
+                        </label>
+                        <p className="text-xs text-gray-400 mb-2">השם שיופיע בהודעת הוואטסאפ</p>
+                        {isEditingWhatsapp ? (
+                            <div className="space-y-2">
+                                <input
+                                    type="text"
+                                    value={whatsappInput}
+                                    onChange={e => setWhatsappInput(e.target.value)}
+                                    placeholder="לדוגמה: יונתן"
+                                    autoFocus
+                                    className="w-full bg-white border border-apro-green rounded-xl px-4 py-3 text-gray-700 font-medium focus:outline-none focus:ring-2 focus:ring-apro-green/50"
+                                />
+                                {whatsappError && (
+                                    <p className="text-red-500 text-xs font-medium">{whatsappError}</p>
+                                )}
+                                <div className="flex gap-2">
+                                    <button
+                                        onClick={handleWhatsappSave}
+                                        disabled={whatsappSaving}
+                                        className="flex-1 py-2 bg-apro-green text-white text-sm font-bold rounded-lg hover:bg-emerald-600 disabled:opacity-50 transition-colors"
+                                    >
+                                        {whatsappSaving ? <Loader2 className="w-4 h-4 animate-spin mx-auto" /> : 'שמור'}
+                                    </button>
+                                    <button
+                                        onClick={() => { setIsEditingWhatsapp(false); setWhatsappError(null); }}
+                                        disabled={whatsappSaving}
+                                        className="px-3 py-2 bg-white border border-gray-200 text-gray-500 text-sm font-bold rounded-lg hover:bg-gray-50 transition-colors"
+                                    >
+                                        <X className="w-4 h-4" />
+                                    </button>
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="flex items-center gap-2">
+                                <div className="flex-1 bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 text-gray-700 font-bold min-h-[48px] flex items-center">
+                                    {person.whatsapp_name || <span className="text-gray-300">לא הוגדר</span>}
+                                </div>
+                                <button
+                                    onClick={() => { setWhatsappInput(person.whatsapp_name || ''); setIsEditingWhatsapp(true); }}
+                                    className="p-2.5 bg-white border border-gray-200 hover:border-apro-green hover:text-apro-green text-gray-400 rounded-xl transition-colors"
+                                    title="ערוך שם להודעות"
+                                >
+                                    <Pencil className="w-4 h-4" />
+                                </button>
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>

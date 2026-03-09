@@ -9,6 +9,7 @@ export const buildings = pgTable('buildings', {
     addressCity: text('address_city').notNull(),
     numFloors: integer('num_floors').notNull(),
     numUnits: integer('num_units').notNull(),
+    billingDay: integer('billing_day').notNull().default(10),
     builtYear: integer('built_year'),
     createdAt: timestamp('created_at').defaultNow().notNull(),
 });

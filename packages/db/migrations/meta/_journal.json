@@ -8,6 +8,41 @@
       "when": 1772812911259,
       "tag": "0000_baseline",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1772915732308,
+      "tag": "0001_tearful_metal_master",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1772962180512,
+      "tag": "0002_wooden_blink",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1772969485593,
+      "tag": "0003_abandoned_monster_badoon",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1772996738341,
+      "tag": "0004_organic_madripoor",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1773064596372,
+      "tag": "0005_opposite_shatterstar",
+      "breakpoints": true
     }
   ]
 }

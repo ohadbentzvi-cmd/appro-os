@@ -3,11 +3,12 @@
 import React from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Building2, ChevronLeft, Loader2, AlertCircle, ChevronRight, Info, Grid, MapPin, Users } from 'lucide-react';
+import { Building2, ChevronLeft, Loader2, AlertCircle, ChevronRight, Info, Grid, MapPin, Users, Pencil } from 'lucide-react';
 import { motion } from 'motion/react';
 import GenerateChargesWrapper from '@/app/dashboard/payments/GenerateChargesWrapper';
 import PaymentsGrid from './PaymentsGrid';
 import ChargeDetailDrawer from './ChargeDetailDrawer';
+import EditBuildingModal from '@/app/components/buildings/EditBuildingModal';
 
 interface UnitRowData {
     id: string;
@@ -34,6 +35,8 @@ export default function BuildingDetail() {
 
     const [drawerAmountDue, setDrawerAmountDue] = React.useState<number>(0);
     const [drawerStatus, setDrawerStatus] = React.useState<string>('pending');
+
+    const [isEditBuildingOpen, setIsEditBuildingOpen] = React.useState(false);
 
     const handleRowClick = (chargeId: string, unitIdentifier: string, floor: number, amountDue: number, status: string) => {
         setDrawerChargeId(chargeId);
@@ -163,9 +166,13 @@ export default function BuildingDetail() {
                         </div>
                     </div>
                 </div>
-                <div>
-                    <GenerateChargesWrapper />
-                </div>
+                <button
+                    onClick={() => setIsEditBuildingOpen(true)}
+                    className="flex items-center gap-2 px-4 py-2.5 bg-white border border-gray-200 hover:border-apro-green hover:text-apro-green text-gray-600 rounded-xl font-bold text-sm transition-all shadow-sm"
+                >
+                    <Pencil className="w-4 h-4" />
+                    ערוך פרטים
+                </button>
             </div>
 
             {/* Tabs Layout */}
@@ -273,6 +280,12 @@ export default function BuildingDetail() {
                                                 {building.numUnits || '0'}
                                             </div>
                                         </div>
+                                        <div className="flex-1">
+                                            <label className="block text-sm font-semibold text-gray-500 mb-2">יום חיוב</label>
+                                            <div className="w-full bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 text-gray-700 font-bold text-center">
+                                                {building.billingDay ?? 10}
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -366,6 +379,9 @@ export default function BuildingDetail() {
                             initial={{ opacity: 0, y: 10 }}
                             animate={{ opacity: 1, y: 0 }}
                         >
+                            <div className="flex justify-end mb-4">
+                                <GenerateChargesWrapper buildingId={id} />
+                            </div>
                             <PaymentsGrid
                                 buildingId={id}
                                 onRowClick={handleRowClick}
@@ -383,6 +399,16 @@ export default function BuildingDetail() {
                 floor={drawerFloor}
                 amountDue={drawerAmountDue}
                 status={drawerStatus}
+            />
+
+            <EditBuildingModal
+                isOpen={isEditBuildingOpen}
+                onClose={() => setIsEditBuildingOpen(false)}
+                building={building}
+                onSuccess={(updated) => {
+                    setBuilding(updated);
+                    setIsEditBuildingOpen(false);
+                }}
             />
         </div>
     );

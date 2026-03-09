@@ -1,8 +1,9 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
-import { Building2, Home, Settings, Users, LogOut, CreditCard } from 'lucide-react';
+import { Home, Users, LogOut, CreditCard, MessageSquare } from 'lucide-react';
 import { createSupabaseBrowserClient } from '@/lib/supabase/client';
 import * as Sentry from '@sentry/nextjs';
 
@@ -28,12 +29,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             <aside className="w-64 bg-apro-navy text-white flex flex-col fixed inset-y-0 right-0 z-50 shadow-xl">
                 {/* Logo Section */}
                 <div className="p-6 border-b border-white/10">
-                    <div className="flex items-center gap-3">
-                        <div className="bg-apro-green p-1.5 rounded-lg">
-                            <Building2 className="w-5 h-5 text-white" />
-                        </div>
-                        <span className="text-xl font-bold tracking-tight">אפרו נדל"ן</span>
-                    </div>
+                    <Image src="/logo.png" alt="אפרו נדל״ן" width={150} height={50} className="object-contain mx-auto" />
                 </div>
 
                 {/* Navigation Items */}
@@ -54,22 +50,24 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     </Link>
                     <Link
                         href="/dashboard/payments"
-                        className={getNavClass("/dashboard/payments")}
+                        className={pathname?.startsWith('/dashboard/payments') && !pathname?.startsWith('/dashboard/payments/reminders')
+                            ? "flex items-center gap-3 px-4 py-3 rounded-xl bg-apro-green text-white font-bold transition-all shadow-lg shadow-apro-green/20"
+                            : "flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/5 text-white/70 hover:text-white transition-all"}
                     >
                         <CreditCard className="w-5 h-5" />
                         <span>תשלומים</span>
+                    </Link>
+                    <Link
+                        href="/dashboard/payments/reminders"
+                        className={getNavClass("/dashboard/payments/reminders")}
+                    >
+                        <MessageSquare className="w-5 h-5" />
+                        <span>תקשורת דיירים</span>
                     </Link>
                 </nav>
 
                 {/* Bottom Navigation */}
                 <div className="p-4 border-t border-white/10 flex flex-col gap-2">
-                    <Link
-                        href="/dashboard/settings"
-                        className={getNavClass("/dashboard/settings") + " group"}
-                    >
-                        <Settings className="w-5 h-5 group-hover:rotate-45 transition-transform" />
-                        <span className="font-medium">מערכת</span>
-                    </Link>
                     <button
                         onClick={handleSignOut}
                         className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/5 text-white/70 hover:text-white transition-all text-right w-full"
