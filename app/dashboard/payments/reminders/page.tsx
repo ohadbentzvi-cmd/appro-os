@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { MessageSquare, ChevronDown, Loader2, AlertCircle, CheckCircle, XCircle, Clock, RefreshCw } from 'lucide-react';
 import Link from 'next/link';
 import { formatHebrewMonthYear } from '@/lib/reminders/month';
+import TemplateSettingsPanel from '@/app/components/templates/TemplateSettingsPanel';
 
 interface ReminderLogRow {
     id: string;
@@ -153,7 +154,7 @@ export default function RemindersLogPage() {
                             <div className="bg-apro-green/10 p-2 rounded-xl">
                                 <MessageSquare className="w-5 h-5 text-apro-green" />
                             </div>
-                            <h1 className="text-2xl font-bold text-apro-navy">יומן תזכורות</h1>
+                            <h1 className="text-2xl font-bold text-apro-navy">תקשורת דיירים</h1>
                         </div>
                         <p className="text-sm text-gray-500 mr-12">
                             היסטוריית שליחת תזכורות WhatsApp
@@ -317,6 +318,11 @@ export default function RemindersLogPage() {
                     <Link href="/dashboard/payments" className="text-sm text-gray-400 hover:text-apro-navy transition-colors underline underline-offset-2">
                         חזרה לדף התשלומים
                     </Link>
+                </div>
+
+                {/* Template settings */}
+                <div className="border-t border-gray-200 pt-10">
+                    <TemplateSettingsPanel />
                 </div>
             </div>
         </div>

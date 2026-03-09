@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { Building2, Home, Settings, Users, LogOut, CreditCard, MessageSquare } from 'lucide-react';
+import { Building2, Home, Users, LogOut, CreditCard, MessageSquare } from 'lucide-react';
 import { createSupabaseBrowserClient } from '@/lib/supabase/client';
 import * as Sentry from '@sentry/nextjs';
 
@@ -66,19 +66,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                         className={getNavClass("/dashboard/payments/reminders")}
                     >
                         <MessageSquare className="w-5 h-5" />
-                        <span>יומן תזכורות</span>
+                        <span>תקשורת דיירים</span>
                     </Link>
                 </nav>
 
                 {/* Bottom Navigation */}
                 <div className="p-4 border-t border-white/10 flex flex-col gap-2">
-                    <Link
-                        href="/dashboard/settings"
-                        className={getNavClass("/dashboard/settings") + " group"}
-                    >
-                        <Settings className="w-5 h-5 group-hover:rotate-45 transition-transform" />
-                        <span className="font-medium">מערכת</span>
-                    </Link>
                     <button
                         onClick={handleSignOut}
                         className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/5 text-white/70 hover:text-white transition-all text-right w-full"
