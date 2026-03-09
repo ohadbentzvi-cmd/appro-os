@@ -1,8 +1,9 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
-import { Building2, Home, Users, LogOut, CreditCard, MessageSquare } from 'lucide-react';
+import { Home, Users, LogOut, CreditCard, MessageSquare } from 'lucide-react';
 import { createSupabaseBrowserClient } from '@/lib/supabase/client';
 import * as Sentry from '@sentry/nextjs';
 
@@ -28,12 +29,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             <aside className="w-64 bg-apro-navy text-white flex flex-col fixed inset-y-0 right-0 z-50 shadow-xl">
                 {/* Logo Section */}
                 <div className="p-6 border-b border-white/10">
-                    <div className="flex items-center gap-3">
-                        <div className="bg-apro-green p-1.5 rounded-lg">
-                            <Building2 className="w-5 h-5 text-white" />
-                        </div>
-                        <span className="text-xl font-bold tracking-tight">אפרו נדל"ן</span>
-                    </div>
+                    <Image src="/logo.png" alt="אפרו נדל״ן" width={150} height={50} className="object-contain mr-auto" />
                 </div>
 
                 {/* Navigation Items */}
