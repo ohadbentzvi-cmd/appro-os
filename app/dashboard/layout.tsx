@@ -29,7 +29,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             <aside className="w-64 bg-apro-navy text-white flex flex-col fixed inset-y-0 right-0 z-50 shadow-xl">
                 {/* Logo Section */}
                 <div className="p-6 border-b border-white/10">
-                    <Image src="/logo.png" alt="אפרו נדל״ן" width={150} height={50} className="object-contain mr-auto" />
+                    <Image src="/logo.png" alt="אפרו נדל״ן" width={150} height={50} className="object-contain mx-auto" />
                 </div>
 
                 {/* Navigation Items */}
