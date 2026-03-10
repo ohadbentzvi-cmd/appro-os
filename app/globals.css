@@ -10,9 +10,10 @@
 }
 
 @layer base {
-  html {
+  html, body {
     direction: rtl;
     font-family: var(--font-sans);
+    overflow-x: hidden;
   }
   
   body {

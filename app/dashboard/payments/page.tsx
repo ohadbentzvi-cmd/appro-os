@@ -92,10 +92,10 @@ function PaymentsDashboardContent() {
 
     return (
         <div className="animate-in fade-in max-w-7xl mx-auto">
-            <header className="mb-6 flex justify-between items-start">
+            <header className="mb-6 flex items-center justify-between gap-4">
                 <div>
-                    <h1 className="text-3xl font-bold text-apro-navy mb-2">תשלומים</h1>
-                    <p className="text-gray-500 font-medium">מעקב וניהול גבייה</p>
+                    <h1 className="text-2xl md:text-3xl font-bold text-apro-navy mb-1">תשלומים</h1>
+                    <p className="text-gray-500 font-medium text-sm md:text-base">מעקב וניהול גבייה</p>
                 </div>
 
                 <div className="relative group">

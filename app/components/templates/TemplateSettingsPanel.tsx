@@ -100,15 +100,15 @@ function VariableMappingRow({
     onSave: (slot: string, field: SystemField | null) => void;
 }) {
     return (
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
             <span className="font-mono text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded shrink-0">
                 {`{{${slot}}}`}
             </span>
-            <div className="relative">
+            <div className="relative flex-1 min-w-0">
                 <select
                     value={currentField ?? ''}
                     onChange={e => onSave(slot, (e.target.value as SystemField) || null)}
-                    className="appearance-none bg-white border border-gray-200 rounded-lg pl-8 pr-3 py-1.5 text-sm font-medium text-gray-700 hover:border-apro-green focus:outline-none focus:ring-2 focus:ring-apro-green/30 cursor-pointer transition-colors"
+                    className="w-full appearance-none bg-white border border-gray-200 rounded-lg pl-8 pr-3 py-1.5 text-sm font-medium text-gray-700 hover:border-apro-green focus:outline-none focus:ring-2 focus:ring-apro-green/30 cursor-pointer transition-colors"
                 >
                     <option value="">— לא ממופה —</option>
                     {SYSTEM_FIELDS.map(f => (
@@ -168,12 +168,12 @@ function TemplateCard({
     };
 
     return (
-        <div className={`bg-white rounded-2xl border ${template.isDefault ? 'border-apro-green shadow-sm shadow-apro-green/10' : 'border-gray-200'} p-6 space-y-4`}>
+        <div className={`bg-white rounded-2xl border ${template.isDefault ? 'border-apro-green shadow-sm shadow-apro-green/10' : 'border-gray-200'} p-4 md:p-6 space-y-4`}>
             {/* Header row */}
             <div className="flex items-start justify-between gap-4">
                 <div className="space-y-1 min-w-0">
                     <NameEditor template={template} onSaved={onUpdate} />
-                    <p className="font-mono text-xs text-gray-400 truncate">מזהה: {template.twilioTemplateSid}</p>
+                    <p className="hidden md:block font-mono text-xs text-gray-400 truncate">מזהה: {template.twilioTemplateSid}</p>
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
                     {template.isDefault ? (

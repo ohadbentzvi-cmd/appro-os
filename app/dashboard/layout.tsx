@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import MobileNav from './MobileNav';
 import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
 import { Home, Users, LogOut, CreditCard, MessageSquare } from 'lucide-react';
@@ -25,8 +26,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
     return (
         <div className="min-h-screen flex bg-[#f8f9fa] font-sans">
+            {/* Mobile Navigation */}
+            <MobileNav pathname={pathname} onSignOut={handleSignOut} />
+
             {/* Right Sidebar Navigation */}
-            <aside className="w-64 bg-apro-navy text-white flex flex-col fixed inset-y-0 right-0 z-50 shadow-xl">
+            <aside className="hidden lg:flex w-64 bg-apro-navy text-white flex-col fixed inset-y-0 right-0 z-50 shadow-xl">
                 {/* Logo Section */}
                 <div className="p-6 border-b border-white/10">
                     <Image src="/logo.png" alt="אפרו נדל״ן" width={150} height={50} className="object-contain mx-auto" />
@@ -67,7 +71,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 </nav>
 
                 {/* Bottom Navigation */}
-                <div className="p-4 border-t border-white/10 flex flex-col gap-2">
+                <div className="p-4 border-t border-white/10">
                     <button
                         onClick={handleSignOut}
                         className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/5 text-white/70 hover:text-white transition-all text-right w-full"
@@ -79,7 +83,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             </aside>
 
             {/* Main Content Area */}
-            <main className="flex-grow mr-64 p-8 lg:p-12">
+            <main className="flex-grow min-w-0 lg:mr-64 pt-16 px-4 pb-4 md:px-6 md:pb-6 lg:p-12">
                 <Sentry.ErrorBoundary fallback={<p>An error has occurred in the dashboard component.</p>}>
                     {children}
                 </Sentry.ErrorBoundary>

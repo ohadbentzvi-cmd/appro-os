@@ -52,16 +52,16 @@ export default function BuildingsList() {
 
     return (
         <>
-            <header className="mb-10 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <header className="mb-6 md:mb-10 flex items-center justify-between gap-4">
                 <div>
-                    <h1 className="text-3xl font-bold text-apro-navy mb-2">ניהול מבנים</h1>
-                    <p className="text-gray-500 font-medium">צפייה וניהול של כל הנכסים במערכת</p>
+                    <h1 className="text-2xl md:text-3xl font-bold text-apro-navy mb-1">ניהול מבנים</h1>
+                    <p className="text-gray-500 font-medium text-sm md:text-base">צפייה וניהול של כל הנכסים במערכת</p>
                 </div>
                 <button
                     onClick={() => setIsWizardOpen(true)}
-                    className="flex items-center gap-2 bg-apro-green text-white px-6 py-3 rounded-xl font-bold hover:bg-emerald-600 transition-colors shadow-sm shadow-apro-green/20"
+                    className="flex items-center gap-2 bg-apro-green text-white px-4 md:px-6 py-2.5 md:py-3 rounded-xl font-bold hover:bg-emerald-600 transition-colors shadow-sm shadow-apro-green/20 shrink-0 text-sm md:text-base"
                 >
-                    <Plus className="w-5 h-5" />
+                    <Plus className="w-4 h-4 md:w-5 md:h-5" />
                     הוסף בניין
                 </button>
             </header>
@@ -113,59 +113,92 @@ export default function BuildingsList() {
                         <p className="text-gray-400">הוסף מבנים למסד הנתונים כדי לראות אותם כאן.</p>
                     </div>
                 ) : (
-                    <div className="overflow-x-auto">
-                        <table className="w-full text-right border-collapse">
-                            <thead>
-                                <tr className="bg-gray-50/50 text-gray-500 text-sm uppercase tracking-wider">
-                                    <th className="px-6 py-4 font-semibold">שם המבנה</th>
-                                    <th className="px-6 py-4 font-semibold">כתובת</th>
-                                    <th className="px-6 py-4 font-semibold text-center">קומות</th>
-                                    <th className="px-6 py-4 font-semibold text-center">דירות</th>
-                                    <th className="px-6 py-4 font-semibold"></th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-gray-100">
-                                {buildings.map((building, index) => (
-                                    <motion.tr
-                                        key={building.id}
-                                        initial={{ opacity: 0, x: -10 }}
-                                        animate={{ opacity: 1, x: 0 }}
-                                        transition={{ delay: index * 0.05 }}
-                                        className="hover:bg-gray-50/50 transition-colors group cursor-pointer"
-                                        onClick={() => router.push(`/dashboard/buildings/${building.id}`)}
-                                    >
-                                        <td className="px-6 py-5">
-                                            <div className="font-bold text-apro-navy">{building.name}</div>
-                                            {building.builtYear && (
-                                                <div className="text-xs text-gray-400">שנת הקמה: {building.builtYear}</div>
-                                            )}
-                                        </td>
-                                        <td className="px-6 py-5 text-gray-600">
+                    <>
+                        {/* Mobile card list */}
+                        <div className="lg:hidden divide-y divide-gray-100">
+                            {buildings.map((building, index) => (
+                                <motion.div
+                                    key={building.id}
+                                    initial={{ opacity: 0, y: 8 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    transition={{ delay: index * 0.05 }}
+                                    className="flex items-center gap-3 px-4 py-4 active:bg-gray-50 cursor-pointer"
+                                    onClick={() => router.push(`/dashboard/buildings/${building.id}`)}
+                                >
+                                    <div className="bg-apro-navy/5 rounded-xl p-2 shrink-0">
+                                        <Building2 className="w-5 h-5 text-apro-navy" />
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                        <div className="font-bold text-apro-navy truncate">{building.name}</div>
+                                        <div className="text-sm text-gray-500 truncate mt-0.5">
                                             {building.addressStreet}, {building.addressCity}
-                                        </td>
-                                        <td className="px-6 py-5 text-center font-medium text-apro-navy">
-                                            {building.numFloors}
-                                        </td>
-                                        <td className="px-6 py-5 text-center font-medium text-apro-navy">
-                                            {building.unitCount ?? building.numUnits}
-                                        </td>
-                                        <td className="px-6 py-5 text-left">
-                                            <button
-                                                className="bg-white border border-gray-200 hover:border-apro-green hover:text-apro-green text-gray-600 px-4 py-1.5 rounded-lg text-sm font-bold transition-all flex items-center gap-1 mr-auto"
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    router.push(`/dashboard/buildings/${building.id}`);
-                                                }}
-                                            >
-                                                צפייה
-                                                <ChevronLeft className="w-4 h-4" />
-                                            </button>
-                                        </td>
-                                    </motion.tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center gap-2 shrink-0">
+                                        <span className="text-xs font-semibold text-apro-navy bg-apro-navy/8 px-2.5 py-1 rounded-full whitespace-nowrap">
+                                            {building.unitCount ?? building.numUnits} דירות
+                                        </span>
+                                        <ChevronLeft className="w-4 h-4 text-gray-400" />
+                                    </div>
+                                </motion.div>
+                            ))}
+                        </div>
+
+                        {/* Desktop table */}
+                        <div className="hidden lg:block overflow-x-auto">
+                            <table className="w-full text-right border-collapse">
+                                <thead>
+                                    <tr className="bg-gray-50/50 text-gray-500 text-sm uppercase tracking-wider">
+                                        <th className="px-6 py-4 font-semibold">שם המבנה</th>
+                                        <th className="px-6 py-4 font-semibold">כתובת</th>
+                                        <th className="px-6 py-4 font-semibold text-center">קומות</th>
+                                        <th className="px-6 py-4 font-semibold text-center">דירות</th>
+                                        <th className="px-6 py-4 font-semibold"></th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-gray-100">
+                                    {buildings.map((building, index) => (
+                                        <motion.tr
+                                            key={building.id}
+                                            initial={{ opacity: 0, x: -10 }}
+                                            animate={{ opacity: 1, x: 0 }}
+                                            transition={{ delay: index * 0.05 }}
+                                            className="hover:bg-gray-50/50 transition-colors group cursor-pointer"
+                                            onClick={() => router.push(`/dashboard/buildings/${building.id}`)}
+                                        >
+                                            <td className="px-6 py-5">
+                                                <div className="font-bold text-apro-navy">{building.name}</div>
+                                                {building.builtYear && (
+                                                    <div className="text-xs text-gray-400">שנת הקמה: {building.builtYear}</div>
+                                                )}
+                                            </td>
+                                            <td className="px-6 py-5 text-gray-600">
+                                                {building.addressStreet}, {building.addressCity}
+                                            </td>
+                                            <td className="px-6 py-5 text-center font-medium text-apro-navy">
+                                                {building.numFloors}
+                                            </td>
+                                            <td className="px-6 py-5 text-center font-medium text-apro-navy">
+                                                {building.unitCount ?? building.numUnits}
+                                            </td>
+                                            <td className="px-6 py-5 text-left">
+                                                <button
+                                                    className="bg-white border border-gray-200 hover:border-apro-green hover:text-apro-green text-gray-600 px-4 py-1.5 rounded-lg text-sm font-bold transition-all flex items-center gap-1 mr-auto"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        router.push(`/dashboard/buildings/${building.id}`);
+                                                    }}
+                                                >
+                                                    צפייה
+                                                    <ChevronLeft className="w-4 h-4" />
+                                                </button>
+                                            </td>
+                                        </motion.tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    </>
                 )}
             </div>
 
