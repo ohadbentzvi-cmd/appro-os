@@ -144,33 +144,32 @@ export default function RemindersLogPage() {
     };
 
     return (
-        <div className="min-h-screen bg-gray-50/50" dir="rtl">
-            <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8 space-y-6">
+        <div className="max-w-6xl mx-auto space-y-6" dir="rtl">
 
                 {/* Header */}
-                <div className="flex items-start justify-between gap-4">
+                <div className="flex items-center justify-between gap-4">
                     <div>
-                        <div className="flex items-center gap-3 mb-1">
-                            <div className="bg-apro-green/10 p-2 rounded-xl">
-                                <MessageSquare className="w-5 h-5 text-apro-green" />
+                        <div className="flex items-center gap-2 md:gap-3 mb-1">
+                            <div className="bg-apro-green/10 p-1.5 md:p-2 rounded-xl shrink-0">
+                                <MessageSquare className="w-4 h-4 md:w-5 md:h-5 text-apro-green" />
                             </div>
-                            <h1 className="text-2xl font-bold text-apro-navy">תקשורת דיירים</h1>
+                            <h1 className="text-xl md:text-2xl font-bold text-apro-navy">תקשורת דיירים</h1>
                         </div>
-                        <p className="text-sm text-gray-500 mr-12">
+                        <p className="text-xs md:text-sm text-gray-500 mr-8 md:mr-12">
                             היסטוריית שליחת תזכורות WhatsApp
                         </p>
                     </div>
-                    <div className="shrink-0 text-left">
+                    <div className="shrink-0 text-left bg-white rounded-2xl border border-gray-100 px-4 py-2.5 shadow-sm">
                         <p className="text-xs text-gray-400 font-medium">החודש הנוכחי</p>
-                        <p className="text-2xl font-bold text-apro-navy">{totalThisMonth}</p>
+                        <p className="text-xl md:text-2xl font-bold text-apro-navy leading-tight">{totalThisMonth}</p>
                         <p className="text-xs text-gray-400">תזכורות נשלחו</p>
                     </div>
                 </div>
 
                 {/* Filters */}
-                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 flex flex-wrap gap-3">
+                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 flex flex-col sm:flex-row sm:flex-wrap gap-3">
                     {/* Month */}
-                    <div className="flex flex-col gap-1">
+                    <div className="flex flex-col gap-1 flex-1 min-w-0">
                         <label className="text-xs font-semibold text-gray-500">חודש</label>
                         <input
                             type="month"
@@ -179,18 +178,18 @@ export default function RemindersLogPage() {
                                 const val = e.target.value;
                                 setMonthFilter(val ? `${val}-01` : '');
                             }}
-                            className="border border-gray-200 rounded-xl px-3 py-2 text-sm font-medium text-gray-700 focus:outline-none focus:ring-2 focus:ring-apro-green/30 bg-white"
+                            className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm font-medium text-gray-700 focus:outline-none focus:ring-2 focus:ring-apro-green/30 bg-white"
                         />
                     </div>
 
                     {/* Status */}
-                    <div className="flex flex-col gap-1">
+                    <div className="flex flex-col gap-1 flex-1 min-w-0">
                         <label className="text-xs font-semibold text-gray-500">סטטוס</label>
                         <div className="relative">
                             <select
                                 value={statusFilter}
                                 onChange={e => setStatusFilter(e.target.value)}
-                                className="appearance-none border border-gray-200 rounded-xl px-3 py-2 pl-8 text-sm font-medium text-gray-700 focus:outline-none focus:ring-2 focus:ring-apro-green/30 bg-white"
+                                className="w-full appearance-none border border-gray-200 rounded-xl px-3 py-2 pl-8 text-sm font-medium text-gray-700 focus:outline-none focus:ring-2 focus:ring-apro-green/30 bg-white"
                             >
                                 {STATUS_OPTIONS.map(o => (
                                     <option key={o.value} value={o.value}>{o.label}</option>
@@ -202,13 +201,13 @@ export default function RemindersLogPage() {
 
                     {/* Building */}
                     {buildings.length > 0 && (
-                        <div className="flex flex-col gap-1">
+                        <div className="flex flex-col gap-1 flex-1 min-w-0">
                             <label className="text-xs font-semibold text-gray-500">בניין</label>
                             <div className="relative">
                                 <select
                                     value={buildingFilter}
                                     onChange={e => setBuildingFilter(e.target.value)}
-                                    className="appearance-none border border-gray-200 rounded-xl px-3 py-2 pl-8 text-sm font-medium text-gray-700 focus:outline-none focus:ring-2 focus:ring-apro-green/30 bg-white"
+                                    className="w-full appearance-none border border-gray-200 rounded-xl px-3 py-2 pl-8 text-sm font-medium text-gray-700 focus:outline-none focus:ring-2 focus:ring-apro-green/30 bg-white"
                                 >
                                     <option value="all">כל הבניינים</option>
                                     {buildings.map(b => (
@@ -241,7 +240,34 @@ export default function RemindersLogPage() {
                         </div>
                     ) : (
                         <>
-                            <div className="overflow-x-auto">
+                            {/* Mobile card list */}
+                            <div className="lg:hidden divide-y divide-gray-100">
+                                {rows.map(row => (
+                                    <div key={row.id} className="px-4 py-4">
+                                        <div className="flex items-start justify-between gap-3 mb-2">
+                                            <div className="min-w-0">
+                                                <p className="font-bold text-apro-navy truncate">{row.recipientNameUsed}</p>
+                                                <p className="text-xs text-gray-500 mt-0.5" dir="ltr" style={{ textAlign: 'right' }}>
+                                                    {row.recipientPhone}
+                                                </p>
+                                            </div>
+                                            <div className="shrink-0">
+                                                <StatusBadge status={row.status} />
+                                            </div>
+                                        </div>
+                                        <div className="flex items-center justify-between gap-2 text-xs text-gray-500">
+                                            <span>דירה {row.unitNumber} · {row.buildingAddress}</span>
+                                            <span className="shrink-0">{formatDateTime(row.sentAt)}</span>
+                                        </div>
+                                        {row.failureReason && (
+                                            <p className="text-xs text-red-500 mt-1">{row.failureReason}</p>
+                                        )}
+                                    </div>
+                                ))}
+                            </div>
+
+                            {/* Desktop table */}
+                            <div className="hidden lg:block overflow-x-auto">
                                 <table className="w-full text-sm">
                                     <thead>
                                         <tr className="border-b border-gray-100 bg-gray-50/50">
@@ -257,25 +283,19 @@ export default function RemindersLogPage() {
                                     <tbody className="divide-y divide-gray-50">
                                         {rows.map(row => (
                                             <tr key={row.id} className="hover:bg-gray-50/50 transition-colors">
-                                                <td className="px-4 py-3 text-gray-600 whitespace-nowrap">
-                                                    {formatDateTime(row.sentAt)}
-                                                </td>
+                                                <td className="px-4 py-3 text-gray-600 whitespace-nowrap">{formatDateTime(row.sentAt)}</td>
                                                 <td className="px-4 py-3">
                                                     <p className="font-bold text-apro-navy">{row.recipientNameUsed}</p>
                                                     {row.recipientFullName && row.recipientFullName !== row.recipientNameUsed && (
                                                         <p className="text-xs text-gray-400">{row.recipientFullName}</p>
                                                     )}
                                                 </td>
-                                                <td className="px-4 py-3 text-gray-600 font-mono text-xs" dir="ltr">
-                                                    {row.recipientPhone}
-                                                </td>
+                                                <td className="px-4 py-3 text-gray-600 font-mono text-xs" dir="ltr">{row.recipientPhone}</td>
                                                 <td className="px-4 py-3">
                                                     <p className="font-medium text-gray-800">דירה {row.unitNumber}</p>
                                                     <p className="text-xs text-gray-400">{row.buildingAddress}</p>
                                                 </td>
-                                                <td className="px-4 py-3 text-gray-600 whitespace-nowrap">
-                                                    {formatHebrewMonthYear(row.periodMonth)}
-                                                </td>
+                                                <td className="px-4 py-3 text-gray-600 whitespace-nowrap">{formatHebrewMonthYear(row.periodMonth)}</td>
                                                 <td className="px-4 py-3">
                                                     <div className="space-y-1">
                                                         <StatusBadge status={row.status} />
@@ -284,9 +304,7 @@ export default function RemindersLogPage() {
                                                         )}
                                                     </div>
                                                 </td>
-                                                <td className="px-4 py-3 text-gray-500 text-xs">
-                                                    {row.senderFullName ?? '—'}
-                                                </td>
+                                                <td className="px-4 py-3 text-gray-500 text-xs">{row.senderFullName ?? '—'}</td>
                                             </tr>
                                         ))}
                                     </tbody>
@@ -301,10 +319,7 @@ export default function RemindersLogPage() {
                                         disabled={loadingMore}
                                         className="flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-sm bg-white border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-50 transition-colors"
                                     >
-                                        {loadingMore
-                                            ? <Loader2 className="w-4 h-4 animate-spin" />
-                                            : <RefreshCw className="w-4 h-4" />
-                                        }
+                                        {loadingMore ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
                                         טען עוד
                                     </button>
                                 </div>
@@ -324,7 +339,6 @@ export default function RemindersLogPage() {
                 <div className="border-t border-gray-200 pt-10">
                     <TemplateSettingsPanel />
                 </div>
-            </div>
         </div>
     );
 }

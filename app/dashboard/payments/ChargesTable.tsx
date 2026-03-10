@@ -215,8 +215,6 @@ export default function ChargesTable({ displayUnits, buildingParam, statusParam,
                 </div>
             </div>
 
-
-
             {displayUnits.length === 0 ? (
                 <div className="bg-white rounded-2xl p-16 border border-gray-100 text-center flex flex-col items-center shadow-sm relative z-0 mb-6">
                     <div className="bg-gray-50 p-4 rounded-full mb-4">
@@ -226,157 +224,212 @@ export default function ChargesTable({ displayUnits, buildingParam, statusParam,
                     <p className="text-gray-400">לא קיימים חיובים עבור מסננים אלו.</p>
                 </div>
             ) : (
-                <div className="border border-gray-100 rounded-2xl overflow-hidden bg-white shadow-sm mb-6 max-h-[800px] overflow-y-auto">
-                    {/* Render Grouped Table */}
-                    {buildingParam === 'all' && groupedCharges && (
-                        <div className="w-full relative">
-                            <table className="w-full text-right border-collapse">
-                                {/* Global Sticky Header */}
-                                <thead className="sticky top-0 z-10 bg-white shadow-sm ring-1 ring-gray-100">
-                                    <tr className="text-gray-500 text-sm uppercase tracking-wider">
-                                        <th className="px-4 py-4 w-10">
-                                            <input type="checkbox" checked={allEligibleSelected} onChange={toggleAll} className="accent-apro-green w-4 h-4 cursor-pointer" />
-                                        </th>
-                                        <th className="px-6 py-4 font-semibold">דייר משלם</th>
-                                        <th className="px-6 py-4 font-semibold">יחידה</th>
-                                        <th className="px-6 py-4 font-semibold text-center">קומה</th>
-                                        <th className="px-6 py-4 font-semibold">סכום לתשלום</th>
-                                        <th className="px-6 py-4 font-semibold">שולם</th>
-                                        <th className="px-6 py-4 font-semibold">יתרה</th>
-                                        <th className="px-6 py-4 font-semibold">סטטוס</th>
-                                        <th className="px-6 py-4 font-semibold">תזכורת אחרונה</th>
-                                        <th className="px-6 py-4 font-semibold">תאריך לתשלום</th>
-                                    </tr>
-                                </thead>
+                <div className="border border-gray-100 rounded-2xl overflow-hidden bg-white shadow-sm mb-6">
 
-                                <tbody className="divide-y divide-gray-100 bg-white">
-                                    {Object.entries(groupedCharges).map(([bId, group]) => (
-                                        <React.Fragment key={bId}>
-                                            {/* Section Header */}
-                                            <tr className="bg-gray-50/80 border-y border-gray-100">
-                                                <td colSpan={10} className="px-6 py-4">
-                                                    <div className="flex justify-between items-center">
-                                                        <h3 className="font-bold text-apro-navy">{group.address}</h3>
-                                                        <div className="text-sm font-medium text-gray-500">
-                                                            {group.rows.length} חיובים · נגבו <span className="font-bold text-green-600">{formatMoney(group.totalPaid)}</span> · יתרה <span className="font-bold text-amber-600">{formatMoney(group.totalDue - group.totalPaid)}</span>
-                                                        </div>
-                                                    </div>
-                                                </td>
-                                            </tr>
+                    {/* ── Mobile card list ── */}
+                    <div className="lg:hidden max-h-[800px] overflow-y-auto divide-y divide-gray-100">
+                        {buildingParam === 'all' && groupedCharges && Object.entries(groupedCharges).map(([bId, group]) => (
+                            <React.Fragment key={bId}>
+                                {/* Building section header */}
+                                <div className="px-4 py-3 bg-gray-50/80 sticky top-0 z-10 border-b border-gray-100">
+                                    <div className="flex justify-between items-center">
+                                        <h3 className="font-bold text-apro-navy text-sm truncate">{group.address}</h3>
+                                        <span className="text-xs text-gray-500 shrink-0 mr-2">
+                                            {group.rows.length} חיובים
+                                        </span>
+                                    </div>
+                                </div>
+                                {group.rows.map((row, idx) => (
+                                    <div
+                                        key={`${row.unit_id}-${idx}`}
+                                        onClick={() => handleRowClick(row)}
+                                        className={`flex items-center gap-3 px-4 py-4 cursor-pointer active:bg-gray-50 ${row.is_overdue ? 'bg-red-50' : ''}`}
+                                    >
+                                        <div className="flex-1 min-w-0">
+                                            <div className="flex items-center gap-2 mb-1">
+                                                <span className="font-bold text-apro-navy text-sm">דירה {row.unit_identifier}</span>
+                                                {getStatusBadge(row.status)}
+                                            </div>
+                                            <div className="text-xs text-gray-500 truncate">
+                                                {row.fee_payer_name || row.fee_payer_role || '—'}
+                                            </div>
+                                        </div>
+                                        <div className="shrink-0 text-left">
+                                            <div className="font-bold text-gray-900 text-sm">{formatMoney(row.amount_due)}</div>
+                                            {row.due_date && (
+                                                <div className="text-xs text-gray-400 mt-0.5">{formatDate(row.due_date)}</div>
+                                            )}
+                                        </div>
+                                    </div>
+                                ))}
+                            </React.Fragment>
+                        ))}
 
-                                            {/* Table Content */}
-                                            {group.rows.map((row, idx) => {
-                                                const isEligible = (row.status === 'pending' || row.status === 'partial') && !!row.charge_id;
-                                                const isChecked = !!row.charge_id && selectedChargeIds.has(row.charge_id);
-                                                return (
-                                                    <tr
-                                                        key={`${row.unit_id}-${idx}`}
-                                                        onClick={() => handleRowClick(row)}
-                                                        className={`cursor-pointer transition-colors group ${row.is_overdue ? 'bg-red-50 hover:bg-red-100/80' : 'hover:bg-gray-50/80'}`}
-                                                    >
-                                                        <td className="px-4 py-4 w-10" onClick={e => e.stopPropagation()}>
-                                                            {isEligible && (
-                                                                <input type="checkbox" checked={isChecked} onChange={() => toggleRow(row.charge_id!)} className="accent-apro-green w-4 h-4 cursor-pointer" />
-                                                            )}
-                                                        </td>
-                                                        <td className="px-6 py-4">
-                                                            {row.fee_payer_name || row.fee_payer_role ? (
-                                                                <div className="text-sm text-gray-700 font-medium">
-                                                                    {row.fee_payer_name ? `${row.fee_payer_name} — ${row.fee_payer_role}` : row.fee_payer_role}
-                                                                </div>
-                                                            ) : (
-                                                                <div className="text-gray-300 font-bold">—</div>
-                                                            )}
-                                                        </td>
-                                                        <td className="px-6 py-4">
-                                                            <div className="font-bold text-apro-navy">דירה {row.unit_identifier}</div>
-                                                        </td>
-                                                        <td className="px-6 py-4 text-center">
-                                                            <div className={`inline-flex items-center justify-center px-3 py-1 rounded-full text-sm font-bold ${row.is_overdue ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-600'}`}>
-                                                                {row.floor}
+                        {buildingParam !== 'all' && displayUnits.map((row, idx) => (
+                            <div
+                                key={`${row.unit_id}-${idx}`}
+                                onClick={() => handleRowClick(row)}
+                                className={`flex items-center gap-3 px-4 py-4 cursor-pointer active:bg-gray-50 ${row.is_overdue ? 'bg-red-50' : ''}`}
+                            >
+                                <div className="flex-1 min-w-0">
+                                    <div className="flex items-center gap-2 mb-1">
+                                        <span className="font-bold text-apro-navy text-sm">דירה {row.unit_identifier}</span>
+                                        {getStatusBadge(row.status)}
+                                    </div>
+                                    <div className="text-xs text-gray-500 truncate">
+                                        {row.fee_payer_name || row.fee_payer_role || '—'}
+                                    </div>
+                                </div>
+                                <div className="shrink-0 text-left">
+                                    <div className="font-bold text-gray-900 text-sm">{formatMoney(row.amount_due)}</div>
+                                    {row.due_date && (
+                                        <div className="text-xs text-gray-400 mt-0.5">{formatDate(row.due_date)}</div>
+                                    )}
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+
+                    {/* ── Desktop tables ── */}
+                    <div className="hidden lg:block max-h-[800px] overflow-y-auto">
+                        {/* Grouped table */}
+                        {buildingParam === 'all' && groupedCharges && (
+                            <div className="w-full relative">
+                                <table className="w-full text-right border-collapse">
+                                    <thead className="sticky top-0 z-10 bg-white shadow-sm ring-1 ring-gray-100">
+                                        <tr className="text-gray-500 text-sm uppercase tracking-wider">
+                                            <th className="px-4 py-4 w-10">
+                                                <input type="checkbox" checked={allEligibleSelected} onChange={toggleAll} className="accent-apro-green w-4 h-4 cursor-pointer" />
+                                            </th>
+                                            <th className="px-6 py-4 font-semibold">דייר משלם</th>
+                                            <th className="px-6 py-4 font-semibold">יחידה</th>
+                                            <th className="px-6 py-4 font-semibold text-center">קומה</th>
+                                            <th className="px-6 py-4 font-semibold">סכום לתשלום</th>
+                                            <th className="px-6 py-4 font-semibold">שולם</th>
+                                            <th className="px-6 py-4 font-semibold">יתרה</th>
+                                            <th className="px-6 py-4 font-semibold">סטטוס</th>
+                                            <th className="px-6 py-4 font-semibold">תזכורת אחרונה</th>
+                                            <th className="px-6 py-4 font-semibold">תאריך לתשלום</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-gray-100 bg-white">
+                                        {Object.entries(groupedCharges).map(([bId, group]) => (
+                                            <React.Fragment key={bId}>
+                                                <tr className="bg-gray-50/80 border-y border-gray-100">
+                                                    <td colSpan={10} className="px-6 py-4">
+                                                        <div className="flex justify-between items-center">
+                                                            <h3 className="font-bold text-apro-navy">{group.address}</h3>
+                                                            <div className="text-sm font-medium text-gray-500">
+                                                                {group.rows.length} חיובים · נגבו <span className="font-bold text-green-600">{formatMoney(group.totalPaid)}</span> · יתרה <span className="font-bold text-amber-600">{formatMoney(group.totalDue - group.totalPaid)}</span>
                                                             </div>
-                                                        </td>
-                                                        <td className="px-6 py-4 font-medium text-gray-800">{formatMoney(row.amount_due)}</td>
-                                                        <td className="px-6 py-4 font-medium text-green-600">{formatMoney(row.amount_paid)}</td>
-                                                        <td className="px-6 py-4 font-medium text-amber-600">{formatMoney(row.amount_due - row.amount_paid)}</td>
-                                                        <td className="px-6 py-4">{getStatusBadge(row.status)}</td>
-                                                        <td className="px-6 py-4"><ReminderStatusBadge lastReminder={row.last_reminder} /></td>
-                                                        <td className="px-6 py-4 text-gray-500 text-sm font-medium">{formatDate(row.due_date || '')}</td>
-                                                    </tr>
-                                                );
-                                            })}
-                                        </React.Fragment>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>
-                    )}
-
-                    {/* Render Flat Table */}
-                    {buildingParam !== 'all' && (
-                        <div className="w-full relative">
-                            <table className="w-full text-right border-collapse">
-                                <thead className="sticky top-0 z-10 bg-white shadow-sm ring-1 ring-gray-100">
-                                    <tr className="text-gray-500 text-sm uppercase tracking-wider">
-                                        <th className="px-4 py-4 w-10">
-                                            <input type="checkbox" checked={allEligibleSelected} onChange={toggleAll} className="accent-apro-green w-4 h-4 cursor-pointer" />
-                                        </th>
-                                        <th className="px-6 py-4 font-semibold">דייר משלם</th>
-                                        <th className="px-6 py-4 font-semibold">יחידה</th>
-                                        <th className="px-6 py-4 font-semibold text-center">קומה</th>
-                                        <th className="px-6 py-4 font-semibold">סכום לתשלום</th>
-                                        <th className="px-6 py-4 font-semibold">שולם</th>
-                                        <th className="px-6 py-4 font-semibold">יתרה</th>
-                                        <th className="px-6 py-4 font-semibold">סטטוס</th>
-                                        <th className="px-6 py-4 font-semibold">תזכורת אחרונה</th>
-                                        <th className="px-6 py-4 font-semibold">תאריך לתשלום</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y divide-gray-100 bg-white">
-                                    {displayUnits.map((row, idx) => {
-                                        const isEligible = (row.status === 'pending' || row.status === 'partial') && !!row.charge_id;
-                                        const isChecked = !!row.charge_id && selectedChargeIds.has(row.charge_id);
-                                        return (
-                                            <tr
-                                                key={`${row.unit_id}-${idx}`}
-                                                onClick={() => handleRowClick(row)}
-                                                className={`cursor-pointer transition-colors group ${row.is_overdue ? 'bg-red-50 hover:bg-red-100/80' : 'hover:bg-gray-50/80'}`}
-                                            >
-                                                <td className="px-4 py-4 w-10" onClick={e => e.stopPropagation()}>
-                                                    {isEligible && (
-                                                        <input type="checkbox" checked={isChecked} onChange={() => toggleRow(row.charge_id!)} className="accent-apro-green w-4 h-4 cursor-pointer" />
-                                                    )}
-                                                </td>
-                                                <td className="px-6 py-4">
-                                                    {row.fee_payer_name || row.fee_payer_role ? (
-                                                        <div className="text-sm text-gray-700 font-medium">
-                                                            {row.fee_payer_name ? `${row.fee_payer_name} — ${row.fee_payer_role}` : row.fee_payer_role}
                                                         </div>
-                                                    ) : (
-                                                        <div className="text-gray-300 font-bold">—</div>
-                                                    )}
-                                                </td>
-                                                <td className="px-6 py-4">
-                                                    <div className="font-bold text-apro-navy">דירה {row.unit_identifier}</div>
-                                                </td>
-                                                <td className="px-6 py-4 text-center">
-                                                    <div className={`inline-flex items-center justify-center px-3 py-1 rounded-full text-sm font-bold ${row.is_overdue ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-600'}`}>
-                                                        {row.floor}
-                                                    </div>
-                                                </td>
-                                                <td className="px-6 py-4 font-medium text-gray-800">{formatMoney(row.amount_due)}</td>
-                                                <td className="px-6 py-4 font-medium text-green-600">{formatMoney(row.amount_paid)}</td>
-                                                <td className="px-6 py-4 font-medium text-amber-600">{formatMoney(row.amount_due - row.amount_paid)}</td>
-                                                <td className="px-6 py-4">{getStatusBadge(row.status)}</td>
-                                                <td className="px-6 py-4"><ReminderStatusBadge lastReminder={row.last_reminder} /></td>
-                                                <td className="px-6 py-4 text-gray-500 text-sm font-medium">{formatDate(row.due_date || '')}</td>
-                                            </tr>
-                                        );
-                                    })}
-                                </tbody>
-                            </table>
-                        </div>
-                    )}
+                                                    </td>
+                                                </tr>
+                                                {group.rows.map((row, idx) => {
+                                                    const isEligible = (row.status === 'pending' || row.status === 'partial') && !!row.charge_id;
+                                                    const isChecked = !!row.charge_id && selectedChargeIds.has(row.charge_id);
+                                                    return (
+                                                        <tr
+                                                            key={`${row.unit_id}-${idx}`}
+                                                            onClick={() => handleRowClick(row)}
+                                                            className={`cursor-pointer transition-colors group ${row.is_overdue ? 'bg-red-50 hover:bg-red-100/80' : 'hover:bg-gray-50/80'}`}
+                                                        >
+                                                            <td className="px-4 py-4 w-10" onClick={e => e.stopPropagation()}>
+                                                                {isEligible && (
+                                                                    <input type="checkbox" checked={isChecked} onChange={() => toggleRow(row.charge_id!)} className="accent-apro-green w-4 h-4 cursor-pointer" />
+                                                                )}
+                                                            </td>
+                                                            <td className="px-6 py-4">
+                                                                {row.fee_payer_name || row.fee_payer_role ? (
+                                                                    <div className="text-sm text-gray-700 font-medium">
+                                                                        {row.fee_payer_name ? `${row.fee_payer_name} — ${row.fee_payer_role}` : row.fee_payer_role}
+                                                                    </div>
+                                                                ) : (
+                                                                    <div className="text-gray-300 font-bold">—</div>
+                                                                )}
+                                                            </td>
+                                                            <td className="px-6 py-4"><div className="font-bold text-apro-navy">דירה {row.unit_identifier}</div></td>
+                                                            <td className="px-6 py-4 text-center">
+                                                                <div className={`inline-flex items-center justify-center px-3 py-1 rounded-full text-sm font-bold ${row.is_overdue ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-600'}`}>{row.floor}</div>
+                                                            </td>
+                                                            <td className="px-6 py-4 font-medium text-gray-800">{formatMoney(row.amount_due)}</td>
+                                                            <td className="px-6 py-4 font-medium text-green-600">{formatMoney(row.amount_paid)}</td>
+                                                            <td className="px-6 py-4 font-medium text-amber-600">{formatMoney(row.amount_due - row.amount_paid)}</td>
+                                                            <td className="px-6 py-4">{getStatusBadge(row.status)}</td>
+                                                            <td className="px-6 py-4"><ReminderStatusBadge lastReminder={row.last_reminder} /></td>
+                                                            <td className="px-6 py-4 text-gray-500 text-sm font-medium">{formatDate(row.due_date || '')}</td>
+                                                        </tr>
+                                                    );
+                                                })}
+                                            </React.Fragment>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        )}
+
+                        {/* Flat table */}
+                        {buildingParam !== 'all' && (
+                            <div className="w-full relative">
+                                <table className="w-full text-right border-collapse">
+                                    <thead className="sticky top-0 z-10 bg-white shadow-sm ring-1 ring-gray-100">
+                                        <tr className="text-gray-500 text-sm uppercase tracking-wider">
+                                            <th className="px-4 py-4 w-10">
+                                                <input type="checkbox" checked={allEligibleSelected} onChange={toggleAll} className="accent-apro-green w-4 h-4 cursor-pointer" />
+                                            </th>
+                                            <th className="px-6 py-4 font-semibold">דייר משלם</th>
+                                            <th className="px-6 py-4 font-semibold">יחידה</th>
+                                            <th className="px-6 py-4 font-semibold text-center">קומה</th>
+                                            <th className="px-6 py-4 font-semibold">סכום לתשלום</th>
+                                            <th className="px-6 py-4 font-semibold">שולם</th>
+                                            <th className="px-6 py-4 font-semibold">יתרה</th>
+                                            <th className="px-6 py-4 font-semibold">סטטוס</th>
+                                            <th className="px-6 py-4 font-semibold">תזכורת אחרונה</th>
+                                            <th className="px-6 py-4 font-semibold">תאריך לתשלום</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-gray-100 bg-white">
+                                        {displayUnits.map((row, idx) => {
+                                            const isEligible = (row.status === 'pending' || row.status === 'partial') && !!row.charge_id;
+                                            const isChecked = !!row.charge_id && selectedChargeIds.has(row.charge_id);
+                                            return (
+                                                <tr
+                                                    key={`${row.unit_id}-${idx}`}
+                                                    onClick={() => handleRowClick(row)}
+                                                    className={`cursor-pointer transition-colors group ${row.is_overdue ? 'bg-red-50 hover:bg-red-100/80' : 'hover:bg-gray-50/80'}`}
+                                                >
+                                                    <td className="px-4 py-4 w-10" onClick={e => e.stopPropagation()}>
+                                                        {isEligible && (
+                                                            <input type="checkbox" checked={isChecked} onChange={() => toggleRow(row.charge_id!)} className="accent-apro-green w-4 h-4 cursor-pointer" />
+                                                        )}
+                                                    </td>
+                                                    <td className="px-6 py-4">
+                                                        {row.fee_payer_name || row.fee_payer_role ? (
+                                                            <div className="text-sm text-gray-700 font-medium">
+                                                                {row.fee_payer_name ? `${row.fee_payer_name} — ${row.fee_payer_role}` : row.fee_payer_role}
+                                                            </div>
+                                                        ) : (
+                                                            <div className="text-gray-300 font-bold">—</div>
+                                                        )}
+                                                    </td>
+                                                    <td className="px-6 py-4"><div className="font-bold text-apro-navy">דירה {row.unit_identifier}</div></td>
+                                                    <td className="px-6 py-4 text-center">
+                                                        <div className={`inline-flex items-center justify-center px-3 py-1 rounded-full text-sm font-bold ${row.is_overdue ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-600'}`}>{row.floor}</div>
+                                                    </td>
+                                                    <td className="px-6 py-4 font-medium text-gray-800">{formatMoney(row.amount_due)}</td>
+                                                    <td className="px-6 py-4 font-medium text-green-600">{formatMoney(row.amount_paid)}</td>
+                                                    <td className="px-6 py-4 font-medium text-amber-600">{formatMoney(row.amount_due - row.amount_paid)}</td>
+                                                    <td className="px-6 py-4">{getStatusBadge(row.status)}</td>
+                                                    <td className="px-6 py-4"><ReminderStatusBadge lastReminder={row.last_reminder} /></td>
+                                                    <td className="px-6 py-4 text-gray-500 text-sm font-medium">{formatDate(row.due_date || '')}</td>
+                                                </tr>
+                                            );
+                                        })}
+                                    </tbody>
+                                </table>
+                            </div>
+                        )}
+                    </div>
                 </div>
             )}
 

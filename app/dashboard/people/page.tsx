@@ -1,18 +1,10 @@
 'use client';
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { Users, ChevronLeft, Loader2, AlertCircle, Search, X, ArrowUpDown, ArrowUp, ArrowDown, Check } from 'lucide-react';
+import { Users, ChevronLeft, Loader2, AlertCircle, Search, X, Check } from 'lucide-react';
 import { motion } from 'motion/react';
 import { useRouter } from 'next/navigation';
-import { Person } from '@/lib/supabase/types';
 import CreatePersonModal from '@/app/components/CreatePersonModal';
-
-type PersonWithActiveRolesCount = Person & {
-    active_roles_count: number;
-};
-
-type SortField = 'full_name' | 'email';
-type SortOrder = 'asc' | 'desc';
 
 export default function PeopleList() {
     const [people, setPeople] = useState<any[]>([]);
@@ -79,14 +71,14 @@ export default function PeopleList() {
 
     return (
         <>
-            <header className="mb-8 flex justify-between items-start">
+            <header className="mb-6 md:mb-8 flex items-center justify-between gap-4">
                 <div>
-                    <h1 className="text-3xl font-bold text-apro-navy mb-2">אנשים</h1>
-                    <p className="text-gray-500 font-medium">כל האנשים הרשומים במערכת</p>
+                    <h1 className="text-2xl md:text-3xl font-bold text-apro-navy mb-1">אנשים</h1>
+                    <p className="text-gray-500 font-medium text-sm md:text-base">כל האנשים הרשומים במערכת</p>
                 </div>
                 <button
                     onClick={() => setIsCreateModalOpen(true)}
-                    className="bg-apro-green hover:bg-emerald-600 transition-colors text-white px-6 py-2.5 rounded-xl font-bold shadow-lg shadow-apro-green/20 flex items-center gap-2"
+                    className="bg-apro-green hover:bg-emerald-600 transition-colors text-white px-4 md:px-6 py-2.5 rounded-xl font-bold shadow-lg shadow-apro-green/20 flex items-center gap-2 shrink-0 text-sm md:text-base"
                 >
                     + הוסף אדם
                 </button>
@@ -139,7 +131,62 @@ export default function PeopleList() {
                     </div>
                 ) : (
                     <>
-                        <div className="overflow-x-auto">
+                        {/* Mobile card list */}
+                        <div className="lg:hidden divide-y divide-gray-100">
+                            {people.map((person, index) => {
+                                const roles = person.activeRoles || [];
+                                const roleCount = roles.length;
+                                const firstRole = roles[0];
+                                const isOwner = firstRole?.roleType === 'owner';
+
+                                return (
+                                    <motion.div
+                                        key={person.id}
+                                        initial={{ opacity: 0, y: 8 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        transition={{ delay: index * 0.05 }}
+                                        className="flex items-center gap-3 px-4 py-4 active:bg-gray-50 cursor-pointer"
+                                        onClick={() => router.push(`/dashboard/people/${person.id}`)}
+                                    >
+                                        {/* Avatar */}
+                                        <div className="bg-apro-navy rounded-full w-10 h-10 flex items-center justify-center shrink-0 text-white font-bold text-sm">
+                                            {person.fullName?.charAt(0) || '?'}
+                                        </div>
+                                        {/* Info */}
+                                        <div className="flex-1 min-w-0">
+                                            <div className="font-bold text-apro-navy truncate">{person.fullName}</div>
+                                            <div className="text-sm text-gray-500 mt-0.5 truncate" dir="ltr" style={{ textAlign: 'right' }}>
+                                                {person.phone || person.email || '—'}
+                                            </div>
+                                        </div>
+                                        {/* Role summary */}
+                                        <div className="flex items-center gap-2 shrink-0">
+                                            {roleCount === 0 ? (
+                                                <span className="text-xs font-medium px-2.5 py-1 rounded-full bg-gray-100 text-gray-500 whitespace-nowrap">
+                                                    אין תפקידים
+                                                </span>
+                                            ) : roleCount === 1 ? (
+                                                <span className={`text-xs font-semibold px-2.5 py-1 rounded-full border whitespace-nowrap ${
+                                                    isOwner
+                                                        ? 'bg-blue-50 text-blue-700 border-blue-200'
+                                                        : 'bg-orange-50 text-orange-700 border-orange-200'
+                                                }`}>
+                                                    {isOwner ? 'בעלים' : 'שוכר'}
+                                                </span>
+                                            ) : (
+                                                <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-apro-navy/5 text-apro-navy border border-apro-navy/10 whitespace-nowrap">
+                                                    {roleCount} תפקידים
+                                                </span>
+                                            )}
+                                            <ChevronLeft className="w-4 h-4 text-gray-400" />
+                                        </div>
+                                    </motion.div>
+                                );
+                            })}
+                        </div>
+
+                        {/* Desktop table */}
+                        <div className="hidden lg:block overflow-x-auto">
                             <table className="w-full text-right border-collapse">
                                 <thead>
                                     <tr className="bg-gray-50/50 text-gray-500 text-sm uppercase tracking-wider">

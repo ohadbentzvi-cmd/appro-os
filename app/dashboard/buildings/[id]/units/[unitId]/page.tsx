@@ -3,8 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
-import { Building2, ChevronRight, Home, Users, MapPin, Hash, Plus, Check, FileText, ChevronLeft, Loader2, AlertCircle, Pencil } from 'lucide-react';
-import { Building, Unit, Person, UnitRole } from '@/lib/supabase/types';
+import { ChevronRight, Home, Check, Loader2, AlertCircle, Pencil } from 'lucide-react';
 import AssignPersonModal from '@/app/components/AssignPersonModal';
 import EditRoleModal from '@/app/components/EditRoleModal';
 import PaymentConfigSection from '@/app/components/PaymentConfigSection';
@@ -218,29 +217,27 @@ export default function UnitDetail() {
     return (
         <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-5xl mx-auto">
             {/* Header Area */}
-            <div className="flex flex-col gap-2">
+            <div className="flex flex-col gap-1.5">
                 {/* Breadcrumbs */}
-                <div className="flex items-center gap-2 text-sm font-medium text-gray-500">
+                <div className="flex items-center gap-1.5 text-sm font-medium text-gray-500 flex-wrap">
                     <Link href="/dashboard/buildings" className="hover:text-apro-navy transition-colors flex items-center gap-1">
                         <Home className="w-4 h-4" />
                     </Link>
-                    <ChevronRight className="w-4 h-4 transform rotate-180" />
-                    <Link href={`/dashboard/buildings/${id}`} className="hover:text-apro-navy transition-colors">
+                    <ChevronRight className="w-3.5 h-3.5 transform rotate-180" />
+                    <Link href={`/dashboard/buildings/${id}`} className="hover:text-apro-navy transition-colors truncate max-w-[120px]">
                         {buildingName || 'שם הבניין'}
                     </Link>
-                    <ChevronRight className="w-4 h-4 transform rotate-180" />
-                    <Link href={`/dashboard/buildings/${id}/units/${unitId}`} className="text-apro-green">
-                        יחידה {unit.unitNumber}
-                    </Link>
+                    <ChevronRight className="w-3.5 h-3.5 transform rotate-180" />
+                    <span className="text-apro-green">יחידה {unit.unitNumber}</span>
                 </div>
 
-                <h1 className="text-3xl font-bold text-apro-navy tracking-tight mt-2">
+                <h1 className="text-2xl md:text-3xl font-bold text-apro-navy tracking-tight">
                     יחידה {unit.unitNumber} — קומה {unit.floor}
                 </h1>
             </div>
 
             {/* SECTION 1: Unit Info */}
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 lg:p-8">
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 md:p-6 lg:p-8">
                 <h2 className="text-xl font-bold text-apro-navy mb-6">פרטי היחידה</h2>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <div>
@@ -270,13 +267,13 @@ export default function UnitDetail() {
 
             {/* SECTION 2: Active Roles */}
             <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-                <div className="px-6 py-6 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
-                    <h2 className="text-xl font-bold text-apro-navy">דיירים פעילים</h2>
+                <div className="px-4 py-4 md:px-6 md:py-5 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
+                    <h2 className="text-lg md:text-xl font-bold text-apro-navy">דיירים פעילים</h2>
                     <button
                         onClick={handleAssignClick}
-                        className="px-6 py-2 bg-apro-green text-white font-bold rounded-xl hover:bg-emerald-600 transition-colors shadow-sm text-sm"
+                        className="px-3 md:px-5 py-2 bg-apro-green text-white font-bold rounded-xl hover:bg-emerald-600 transition-colors shadow-sm text-sm shrink-0"
                     >
-                        + שיוך אדם ליחידה
+                        + שיוך
                     </button>
                 </div>
 
@@ -285,62 +282,96 @@ export default function UnitDetail() {
                         אין דיירים פעילים ביחידה זו
                     </div>
                 ) : (
-                    <div className="overflow-x-auto">
-                        <table className="w-full text-right border-collapse">
-                            <thead>
-                                <tr className="bg-gray-50/80 text-gray-500 text-sm uppercase tracking-wider">
-                                    <th className="px-6 py-4 font-semibold">שם</th>
-                                    <th className="px-6 py-4 font-semibold">תפקיד</th>
-                                    <th className="px-6 py-4 font-semibold text-center">משלם דמי ניהול</th>
-                                    <th className="px-6 py-4 font-semibold">תאריך התחלה</th>
-                                    <th className="px-6 py-4 font-semibold">פעולות</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-gray-100 bg-white">
-                                {activeRoles.map(role => (
-                                    <tr key={role.id} className="hover:bg-gray-50/50 transition-colors">
-                                        <td className="px-6 py-4 font-bold text-gray-800">
-                                            {getPersonName(role.people)}
-                                        </td>
-                                        <td className="px-6 py-4">
-                                            <span className={`inline-flex px-3 py-1 rounded-full text-xs font-bold border ${role.role_type === 'owner' ? 'bg-blue-50 text-blue-700 border-blue-100' :
-                                                role.role_type === 'tenant' ? 'bg-orange-50 text-orange-700 border-orange-100' :
-                                                    'bg-gray-50 text-gray-700 border-gray-200'
-                                                }`}>
+                    <>
+                        {/* Mobile card list */}
+                        <div className="lg:hidden divide-y divide-gray-100">
+                            {activeRoles.map(role => (
+                                <div key={role.id} className="px-4 py-4">
+                                    <div className="flex items-start justify-between gap-3 mb-2">
+                                        <div className="min-w-0">
+                                            <p className="font-bold text-gray-800 truncate">{getPersonName(role.people)}</p>
+                                            <p className="text-xs text-gray-400 mt-0.5">{formatDate(role.effective_from)}</p>
+                                        </div>
+                                        <div className="flex items-center gap-2 shrink-0">
+                                            <span className={`inline-flex px-2.5 py-1 rounded-full text-xs font-bold border ${role.role_type === 'owner' ? 'bg-blue-50 text-blue-700 border-blue-100' : role.role_type === 'tenant' ? 'bg-orange-50 text-orange-700 border-orange-100' : 'bg-gray-50 text-gray-700 border-gray-200'}`}>
                                                 {roleTranslations[role.role_type] || role.role_type}
                                             </span>
-                                        </td>
-                                        <td className="px-6 py-4 text-center">
-                                            <span className="font-bold text-gray-600">
-                                                {role.is_fee_payer ? '✓' : '—'}
-                                            </span>
-                                        </td>
-                                        <td className="px-6 py-4 text-gray-600">
-                                            {formatDate(role.effective_from)}
-                                        </td>
-                                        <td className="px-6 py-4">
-                                            <div className="flex items-center gap-2">
-                                                <button
-                                                    onClick={() => handleEditClick(role)}
-                                                    className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                                                    title="ערוך תפקיד"
-                                                >
-                                                    <Pencil className="w-4 h-4" />
-                                                </button>
-                                                <button
-                                                    onClick={() => handleRemoveRole(role)}
-                                                    disabled={removingRoleId === role.id}
-                                                    className="text-red-600 hover:bg-red-50 border border-red-100 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                                                >
-                                                    {removingRoleId === role.id ? '...' : 'הסר'}
-                                                </button>
-                                            </div>
-                                        </td>
+                                            {role.is_fee_payer && (
+                                                <span className="text-xs font-medium text-apro-green bg-apro-green/10 px-2 py-1 rounded-full">משלם</span>
+                                            )}
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <button
+                                            onClick={() => handleEditClick(role)}
+                                            className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                                            title="ערוך תפקיד"
+                                        >
+                                            <Pencil className="w-4 h-4" />
+                                        </button>
+                                        <button
+                                            onClick={() => handleRemoveRole(role)}
+                                            disabled={removingRoleId === role.id}
+                                            className="text-red-600 hover:bg-red-50 border border-red-100 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                        >
+                                            {removingRoleId === role.id ? '...' : 'הסר'}
+                                        </button>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+
+                        {/* Desktop table */}
+                        <div className="hidden lg:block overflow-x-auto">
+                            <table className="w-full text-right border-collapse">
+                                <thead>
+                                    <tr className="bg-gray-50/80 text-gray-500 text-sm uppercase tracking-wider">
+                                        <th className="px-6 py-4 font-semibold">שם</th>
+                                        <th className="px-6 py-4 font-semibold">תפקיד</th>
+                                        <th className="px-6 py-4 font-semibold text-center">משלם דמי ניהול</th>
+                                        <th className="px-6 py-4 font-semibold">תאריך התחלה</th>
+                                        <th className="px-6 py-4 font-semibold">פעולות</th>
                                     </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
+                                </thead>
+                                <tbody className="divide-y divide-gray-100 bg-white">
+                                    {activeRoles.map(role => (
+                                        <tr key={role.id} className="hover:bg-gray-50/50 transition-colors">
+                                            <td className="px-6 py-4 font-bold text-gray-800">
+                                                {getPersonName(role.people)}
+                                            </td>
+                                            <td className="px-6 py-4">
+                                                <span className={`inline-flex px-3 py-1 rounded-full text-xs font-bold border ${role.role_type === 'owner' ? 'bg-blue-50 text-blue-700 border-blue-100' : role.role_type === 'tenant' ? 'bg-orange-50 text-orange-700 border-orange-100' : 'bg-gray-50 text-gray-700 border-gray-200'}`}>
+                                                    {roleTranslations[role.role_type] || role.role_type}
+                                                </span>
+                                            </td>
+                                            <td className="px-6 py-4 text-center">
+                                                <span className="font-bold text-gray-600">{role.is_fee_payer ? '✓' : '—'}</span>
+                                            </td>
+                                            <td className="px-6 py-4 text-gray-600">{formatDate(role.effective_from)}</td>
+                                            <td className="px-6 py-4">
+                                                <div className="flex items-center gap-2">
+                                                    <button
+                                                        onClick={() => handleEditClick(role)}
+                                                        className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                                                        title="ערוך תפקיד"
+                                                    >
+                                                        <Pencil className="w-4 h-4" />
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleRemoveRole(role)}
+                                                        disabled={removingRoleId === role.id}
+                                                        className="text-red-600 hover:bg-red-50 border border-red-100 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                                    >
+                                                        {removingRoleId === role.id ? '...' : 'הסר'}
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    </>
                 )}
             </div>
 
@@ -348,7 +379,7 @@ export default function UnitDetail() {
             <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
                 <button
                     onClick={() => setShowHistory(!showHistory)}
-                    className="w-full px-6 py-6 flex justify-between items-center bg-gray-50/50 hover:bg-gray-50 transition-colors text-right"
+                    className="w-full px-4 py-4 md:px-6 md:py-5 flex justify-between items-center bg-gray-50/50 hover:bg-gray-50 transition-colors text-right"
                 >
                     <h2 className="text-xl font-bold text-apro-navy">היסטוריית תפקידים</h2>
                     <ChevronRight className={`w-5 h-5 text-gray-500 transform transition-transform ${showHistory ? 'rotate-90' : 'rotate-180'}`} />

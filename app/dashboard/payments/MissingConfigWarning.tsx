@@ -98,19 +98,19 @@ export default function WarningsBanner({ data }: WarningsBannerProps) {
                     <AlertCircle className={`w-5 h-5 ${iconClasses}`} />
                 </div>
 
-                <div className="flex-1">
-                    <div className="flex justify-between items-start">
-                        <div>
-                            <h3 className="font-bold text-lg">
+                <div className="flex-1 min-w-0">
+                    <div className="flex flex-wrap justify-between items-start gap-2">
+                        <div className="flex-1 min-w-0">
+                            <h3 className="font-bold text-base md:text-lg leading-snug">
                                 {currentWarning.count} {getTitle(currentWarning.type)}
                             </h3>
-                            <p className={`${textDescClasses} text-sm mt-1`}>
+                            <p className={`${textDescClasses} text-xs md:text-sm mt-1`}>
                                 {getDesc(currentWarning.type)}
                             </p>
                         </div>
 
                         {isMultiple && (
-                            <div className="flex items-center gap-2 mr-4 bg-white/40 px-3 py-1.5 rounded-full" onClick={(e) => e.stopPropagation()} dir="ltr">
+                            <div className="flex items-center gap-2 bg-white/40 px-3 py-1.5 rounded-full shrink-0" onClick={(e) => e.stopPropagation()} dir="ltr">
                                 <button onClick={handleNext} className="p-1 hover:bg-black/5 rounded-full transition-colors" aria-label="הבא">
                                     <ChevronLeft className="w-4 h-4 opacity-70 hover:opacity-100" />
                                 </button>
