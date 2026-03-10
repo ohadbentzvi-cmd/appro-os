@@ -17,6 +17,8 @@ export default function LoginPage() {
     const [password, setPassword] = useState('')
     const [passLoading, setPassLoading] = useState(false)
     const [passError, setPassError] = useState('')
+    const [resetSent, setResetSent] = useState(false)
+    const [resetLoading, setResetLoading] = useState(false)
 
     const router = useRouter()
     const supabase = createSupabaseBrowserClient()
@@ -46,6 +48,24 @@ export default function LoginPage() {
             setMagicError('אירעה שגיאה, נסה שוב')
         } finally {
             setMagicLoading(false)
+        }
+    }
+
+    const handleForgotPassword = async () => {
+        if (!passEmail) {
+            setPassError('הזן אימייל כדי לאפס סיסמה')
+            return
+        }
+        setResetLoading(true)
+        setPassError('')
+        const { error } = await supabase.auth.resetPasswordForEmail(passEmail, {
+            redirectTo: `${window.location.origin}/auth/callback?type=recovery`,
+        })
+        setResetLoading(false)
+        if (error) {
+            setPassError('אירעה שגיאה, נסה שוב')
+        } else {
+            setResetSent(true)
         }
     }
 
@@ -147,39 +167,56 @@ export default function LoginPage() {
                         )}
                     </div>
                 ) : (
-                    <form onSubmit={handlePasswordSubmit} className="space-y-5">
-                        <div>
-                            <input
-                                id="pass-email"
-                                type="email"
-                                required
-                                value={passEmail}
-                                onChange={(e) => setPassEmail(e.target.value)}
-                                placeholder="הזן את כתובת האימייל שלך"
-                                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-apro-green focus:border-apro-green outline-none text-right placeholder-gray-400 transition-all"
-                            />
+                    <div>
+                    {resetSent ? (
+                        <div className="bg-green-50 text-green-700 p-4 rounded-xl text-sm text-center border border-green-200">
+                            קישור לאיפוס סיסמה נשלח לאימייל שלך.
                         </div>
-                        <div>
-                            <input
-                                id="password"
-                                type="password"
-                                required
-                                value={password}
-                                onChange={(e) => setPassword(e.target.value)}
-                                placeholder="הזן סיסמה"
-                                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-apro-green focus:border-apro-green outline-none text-right placeholder-gray-400 transition-all"
-                            />
-                            {passError && <p className="mt-2 text-sm text-red-600 px-1">{passError}</p>}
-                        </div>
-                        <button
-                            type="submit"
-                            disabled={passLoading}
-                            className="w-full bg-apro-green text-apro-navy py-3.5 rounded-xl hover:brightness-105 transition-all font-bold disabled:opacity-70 flex justify-center items-center shadow-lg shadow-apro-green/20"
-                        >
-                            {passLoading ? 'מתחבר...' : 'כניסה'}
-                        </button>
-                    </form>
+                    ) : (
+                        <form onSubmit={handlePasswordSubmit} className="space-y-5">
+                            <div>
+                                <input
+                                    id="pass-email"
+                                    type="email"
+                                    required
+                                    value={passEmail}
+                                    onChange={(e) => setPassEmail(e.target.value)}
+                                    placeholder="הזן את כתובת האימייל שלך"
+                                    className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-apro-green focus:border-apro-green outline-none text-right placeholder-gray-400 transition-all"
+                                />
+                            </div>
+                            <div>
+                                <input
+                                    id="password"
+                                    type="password"
+                                    required
+                                    value={password}
+                                    onChange={(e) => setPassword(e.target.value)}
+                                    placeholder="הזן סיסמה"
+                                    className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-apro-green focus:border-apro-green outline-none text-right placeholder-gray-400 transition-all"
+                                />
+                                {passError && <p className="mt-2 text-sm text-red-600 px-1">{passError}</p>}
+                            </div>
+                            <button
+                                type="submit"
+                                disabled={passLoading}
+                                className="w-full bg-apro-green text-apro-navy py-3.5 rounded-xl hover:brightness-105 transition-all font-bold disabled:opacity-70 flex justify-center items-center shadow-lg shadow-apro-green/20"
+                            >
+                                {passLoading ? 'מתחבר...' : 'כניסה'}
+                            </button>
+                            <button
+                                type="button"
+                                onClick={handleForgotPassword}
+                                disabled={resetLoading}
+                                className="w-full text-sm text-gray-500 hover:text-apro-navy transition-colors text-center disabled:opacity-50"
+                            >
+                                {resetLoading ? 'שולח...' : 'שכחתי סיסמה'}
+                            </button>
+                        </form>
+                    )}
+                    </div>
                 )}
+
             </div>
         </div>
     )
