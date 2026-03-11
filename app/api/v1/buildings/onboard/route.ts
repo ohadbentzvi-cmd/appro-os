@@ -116,6 +116,10 @@ export async function POST(req: NextRequest) {
             const buildingId = newBuilding.id;
             const today = new Date().toISOString().split('T')[0];
 
+            // Track phones inserted during this transaction to avoid duplicate inserts
+            // when the same person appears across multiple units
+            const insertedPhoneToPersonId = new Map<string, string>();
+
             // 2. Iterate and Insert Units
             for (const unit of data.units) {
                 const [newUnit] = await tx
@@ -150,18 +154,26 @@ export async function POST(req: NextRequest) {
                             throw new Error(`Person with id ${personId} not found or belongs to another tenant`);
                         }
                     } else {
-                        // Insert new person — whatsappName pre-filled with first name
-                        const firstName = personData.full_name.split(' ')[0] || personData.full_name;
-                        const [newPerson] = await tx
-                            .insert(people)
-                            .values({
-                                tenantId,
-                                fullName: personData.full_name,
-                                phone: personData.phone,
-                                whatsappName: firstName,
-                            })
-                            .returning({ id: people.id });
-                        personId = newPerson.id;
+                        // Reuse a person inserted earlier in this same transaction
+                        if (personData.phone && insertedPhoneToPersonId.has(personData.phone)) {
+                            personId = insertedPhoneToPersonId.get(personData.phone)!;
+                        } else {
+                            // Insert new person — whatsappName pre-filled with first name
+                            const firstName = personData.full_name.split(' ')[0] || personData.full_name;
+                            const [newPerson] = await tx
+                                .insert(people)
+                                .values({
+                                    tenantId,
+                                    fullName: personData.full_name,
+                                    phone: personData.phone,
+                                    whatsappName: firstName,
+                                })
+                                .returning({ id: people.id });
+                            personId = newPerson.id;
+                            if (personData.phone) {
+                                insertedPhoneToPersonId.set(personData.phone, personId);
+                            }
+                        }
                     }
 
                     await tx.insert(unitRoles).values({
