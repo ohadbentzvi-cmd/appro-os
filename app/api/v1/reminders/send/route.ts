@@ -73,7 +73,7 @@ export async function POST(req: NextRequest) {
         const hasMapping = Object.keys(mapping).length > 0;
 
         // Batch-load charge context only when the mapping references charge/unit/building fields
-        const chargeDataFields = new Set(['amount_due', 'due_date', 'building_name', 'unit_number']);
+        const chargeDataFields = new Set(['amount_due', 'due_date', 'due_month_name', 'building_name', 'unit_number']);
         const needsChargeData = hasMapping &&
             Object.values(mapping).some(f => f && chargeDataFields.has(f));
 
@@ -158,6 +158,25 @@ export async function POST(req: NextRequest) {
                 bulkBatchId: bulkBatchId ?? null,
                 twilioTemplateSid: templateSid,
             }).returning({ id: reminderLogs.id });
+
+            // Twilio rejects empty string content variables — catch it early
+            const emptySlots = Object.entries(contentVariables)
+                .filter(([, v]) => v === '')
+                .map(([k]) => k);
+            if (emptySlots.length > 0) {
+                const reason = `contentVariables has empty value(s) for slot(s): ${emptySlots.join(', ')}`;
+                console.error('[reminders/send] aborting — empty content variables', {
+                    chargeId: msg.chargeId,
+                    templateSid,
+                    contentVariables,
+                    emptySlots,
+                });
+                await db.update(reminderLogs)
+                    .set({ status: 'failed', failureReason: reason })
+                    .where(eq(reminderLogs.id, logRow.id));
+                results.push({ chargeId: msg.chargeId, status: 'failed', reason });
+                continue;
+            }
 
             console.log('[reminders/send] sending message', {
                 chargeId: msg.chargeId,
