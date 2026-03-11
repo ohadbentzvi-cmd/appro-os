@@ -159,6 +159,15 @@ export async function POST(req: NextRequest) {
                 twilioTemplateSid: templateSid,
             }).returning({ id: reminderLogs.id });
 
+            console.log('[reminders/send] sending message', {
+                chargeId: msg.chargeId,
+                templateSid,
+                templateId: resolvedTemplate?.id ?? null,
+                mappingUsed: hasMapping ? mapping : 'legacy',
+                contentVariables,
+                to: normalizedPhone,
+            });
+
             try {
                 const twilioMsg = await twilioClient.messages.create({
                     contentSid: templateSid,
@@ -174,6 +183,12 @@ export async function POST(req: NextRequest) {
                 results.push({ chargeId: msg.chargeId, status: 'sent', sid: twilioMsg.sid });
             } catch (twilioErr: unknown) {
                 const reason = (twilioErr as { message?: string })?.message ?? 'Twilio error';
+                console.error('[reminders/send] twilio error', {
+                    chargeId: msg.chargeId,
+                    templateSid,
+                    contentVariables,
+                    reason,
+                });
                 await db.update(reminderLogs)
                     .set({ status: 'failed', failureReason: reason })
                     .where(eq(reminderLogs.id, logRow.id));
