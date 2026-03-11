@@ -29,6 +29,7 @@ export const updatePersonSchema = createPersonSchema.partial()
 export const reminderPreviewSchema = z.object({
     chargeIds: z.array(z.string().uuid()).min(1).max(100),
     periodMonth: z.string().regex(/^\d{4}-\d{2}-01$/, 'Must be YYYY-MM-01 format'),
+    templateId: z.string().uuid().optional(),
 })
 
 export const reminderSendSchema = z.object({

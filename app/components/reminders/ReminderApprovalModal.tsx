@@ -6,9 +6,7 @@ import { X, ChevronRight, ChevronLeft, Loader2, AlertTriangle, Send, MessageSqua
 import Link from 'next/link';
 import ReminderPreviewCard, { PreviewItem } from './ReminderPreviewCard';
 import { normalizeIsraeliPhone } from '@/lib/reminders/phone';
-import { formatHebrewMonthYear } from '@/lib/reminders/month';
-import { type WhatsappTemplate, type SystemField } from '@apro/db/src/schema';
-import { HEBREW_MONTHS } from '@/lib/reminders/templates';
+import { type WhatsappTemplate } from '@apro/db/src/schema';
 
 interface Props {
     isOpen: boolean;
@@ -19,6 +17,21 @@ interface Props {
 }
 
 type Phase = 'loading' | 'ready' | 'sending' | 'done';
+
+async function fetchPreviewWithTemplate(
+    chargeIds: string[],
+    periodMonth: string,
+    templateId?: string,
+): Promise<PreviewItem[]> {
+    const res = await fetch('/api/v1/reminders/preview', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ chargeIds, periodMonth, templateId }),
+    });
+    const json = await res.json();
+    if (json.error) throw new Error(json.error);
+    return json.data ?? [];
+}
 
 const BLOCK_REASON_LABEL: Record<string, string> = {
     no_fee_payer: 'אין משלם מוגדר ליחידה',
@@ -36,34 +49,6 @@ function generateUUID(): string {
     });
 }
 
-/** Client-side preview substitution — uses real charge data from the PreviewItem. */
-function buildMessagePreview(
-    body: string,
-    mapping: Partial<Record<string, SystemField>>,
-    card: PreviewItem,
-    periodMonth: string,
-): string {
-    return body.replace(/\{\{(\d+)\}\}/g, (_, slot) => {
-        const field = mapping[slot];
-        switch (field) {
-            case 'recipient_name': return card.recipientName ?? '';
-            case 'period_month':   return formatHebrewMonthYear(periodMonth);
-            case 'building_name':  return card.buildingName ?? card.buildingAddress ?? '';
-            case 'unit_number':    return card.unitIdentifier ?? '';
-            case 'amount_due':      return card.amountDue != null
-                ? (card.amountDue / 100).toLocaleString('he-IL', { style: 'currency', currency: 'ILS' })
-                : '';
-            case 'due_date':        return card.dueDate
-                ? new Date(card.dueDate).toLocaleDateString('he-IL')
-                : '';
-            case 'due_month_name':  return card.dueDate
-                ? HEBREW_MONTHS[new Date(card.dueDate).getUTCMonth()]
-                : '';
-            default:               return `{{${slot}}}`;
-        }
-    });
-}
-
 export default function ReminderApprovalModal({ isOpen, onClose, onSent, chargeIds, periodMonth }: Props) {
     const [phase, setPhase] = useState<Phase>('loading');
     const [previewItems, setPreviewItems] = useState<PreviewItem[]>([]);
@@ -72,11 +57,12 @@ export default function ReminderApprovalModal({ isOpen, onClose, onSent, chargeI
     const [phoneOverrides, setPhoneOverrides] = useState<Record<string, string>>({});
     const [confirmed, setConfirmed] = useState(false);
     const [sendResults, setSendResults] = useState<Array<{ chargeId: string; status: string; reason?: string }>>([]);
+    const [isResolvingVars, setIsResolvingVars] = useState(false);
 
     const [templates, setTemplates] = useState<WhatsappTemplate[]>([]);
     const [selectedTemplateId, setSelectedTemplateId] = useState<string | undefined>(undefined);
 
-    // Fetch preview + templates whenever modal opens
+    // Fetch templates first, then preview with templateId for server-side variable resolution
     useEffect(() => {
         if (!isOpen || chargeIds.length === 0) return;
 
@@ -89,24 +75,17 @@ export default function ReminderApprovalModal({ isOpen, onClose, onSent, chargeI
         setTemplates([]);
         setSelectedTemplateId(undefined);
 
-        Promise.all([
-            fetch('/api/v1/reminders/preview', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ chargeIds, periodMonth }),
-            }).then(r => r.json()),
-            fetch('/api/v1/templates').then(r => r.json()),
-        ])
-            .then(([previewJson, templatesJson]) => {
-                if (previewJson.error) throw new Error(previewJson.error);
-                setPreviewItems(previewJson.data ?? []);
-
+        fetch('/api/v1/templates')
+            .then(r => r.json())
+            .then(async (templatesJson) => {
                 const loadedTemplates: WhatsappTemplate[] = templatesJson.data ?? [];
                 setTemplates(loadedTemplates);
-                // Pre-select the default template if one exists
                 const defaultTemplate = loadedTemplates.find(t => t.isDefault);
                 setSelectedTemplateId(defaultTemplate?.id);
-
+                return fetchPreviewWithTemplate(chargeIds, periodMonth, defaultTemplate?.id);
+            })
+            .then(items => {
+                setPreviewItems(items);
                 setPhase('ready');
             })
             .catch(e => {
@@ -114,6 +93,20 @@ export default function ReminderApprovalModal({ isOpen, onClose, onSent, chargeI
                 setPhase('ready');
             });
     }, [isOpen, chargeIds.join(','), periodMonth]);
+
+    // Re-fetch preview with new templateId when user changes template
+    const handleTemplateChange = async (newTemplateId: string | undefined) => {
+        setSelectedTemplateId(newTemplateId);
+        setIsResolvingVars(true);
+        try {
+            const items = await fetchPreviewWithTemplate(chargeIds, periodMonth, newTemplateId);
+            setPreviewItems(items);
+        } catch {
+            // keep existing preview items on error
+        } finally {
+            setIsResolvingVars(false);
+        }
+    };
 
     // Items that will be sent: no block reason and not a duplicate
     const sendableItems = previewItems.filter(p => p.blockReason === null && !p.isDuplicate);
@@ -124,11 +117,7 @@ export default function ReminderApprovalModal({ isOpen, onClose, onSent, chargeI
 
     const currentCard = sendableItems[cardIndex] ?? null;
 
-    const selectedTemplate = templates.find(t => t.id === selectedTemplateId) ?? null;
-    const mapping = (selectedTemplate?.variableMapping ?? {}) as Partial<Record<string, SystemField>>;
-    const hasPreview = selectedTemplate !== null &&
-        selectedTemplate.body.length > 0 &&
-        Object.keys(mapping).length > 0;
+    const hasAnyInvalidSlots = sendableItems.some(item => item.invalidSlots?.length > 0);
 
     const handlePhoneOverride = (chargeId: string, phone: string | null) => {
         setPhoneOverrides(prev => {
@@ -249,8 +238,9 @@ export default function ReminderApprovalModal({ isOpen, onClose, onSent, chargeI
                                             </label>
                                             <select
                                                 value={selectedTemplateId ?? ''}
-                                                onChange={e => setSelectedTemplateId(e.target.value || undefined)}
-                                                className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm font-medium text-gray-700 hover:border-apro-green focus:outline-none focus:ring-2 focus:ring-apro-green/30 transition-colors bg-white"
+                                                onChange={e => handleTemplateChange(e.target.value || undefined)}
+                                                disabled={isResolvingVars}
+                                                className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm font-medium text-gray-700 hover:border-apro-green focus:outline-none focus:ring-2 focus:ring-apro-green/30 transition-colors bg-white disabled:opacity-50"
                                             >
                                                 <option value="">ברירת מחדל (ללא תבנית מפורשת)</option>
                                                 {templates.map(t => (
@@ -315,22 +305,24 @@ export default function ReminderApprovalModal({ isOpen, onClose, onSent, chargeI
                                             />
 
                                             {/* Message body preview */}
-                                            {hasPreview && (
-                                                <div className="bg-gray-50 rounded-xl p-4 space-y-2">
-                                                    <p className="text-xs text-gray-400 font-medium flex items-center gap-1.5">
-                                                        <MessageSquare className="w-3.5 h-3.5" />
-                                                        תצוגה מקדימה של ההודעה
+                                            {isResolvingVars ? (
+                                                <div className="bg-gray-50 rounded-xl p-4 flex items-center gap-2 text-gray-400 text-sm">
+                                                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                                    טוען תצוגה מקדימה...
+                                                </div>
+                                            ) : currentCard.resolvedMessage !== null ? (
+                                                <div className={`rounded-xl p-4 space-y-2 ${currentCard.invalidSlots.length > 0 ? 'bg-red-50 border border-red-100' : 'bg-gray-50'}`}>
+                                                    <p className={`text-xs font-medium flex items-center gap-1.5 ${currentCard.invalidSlots.length > 0 ? 'text-red-600' : 'text-gray-400'}`}>
+                                                        {currentCard.invalidSlots.length > 0
+                                                            ? <><AlertTriangle className="w-3.5 h-3.5" />חסרים נתונים להודעה זו — לא ניתן לשלוח</>
+                                                            : <><MessageSquare className="w-3.5 h-3.5" />תצוגה מקדימה של ההודעה</>
+                                                        }
                                                     </p>
                                                     <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">
-                                                        {buildMessagePreview(
-                                                            selectedTemplate!.body,
-                                                            mapping,
-                                                            currentCard,
-                                                            periodMonth,
-                                                        )}
+                                                        {currentCard.resolvedMessage}
                                                     </p>
                                                 </div>
-                                            )}
+                                            ) : null}
 
                                             {/* Carousel nav */}
                                             {sendableItems.length > 1 && (
@@ -418,7 +410,8 @@ export default function ReminderApprovalModal({ isOpen, onClose, onSent, chargeI
                             <div className="px-6 py-5 border-t border-gray-100 shrink-0 flex gap-3">
                                 <button
                                     onClick={handleSend}
-                                    disabled={!confirmed || phase === 'sending'}
+                                    disabled={!confirmed || phase === 'sending' || hasAnyInvalidSlots}
+                                    title={hasAnyInvalidSlots ? 'לא ניתן לשלוח — חסרים נתונים בחלק מההודעות' : undefined}
                                     className="flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-xl font-bold transition-all disabled:opacity-40 disabled:cursor-not-allowed bg-apro-green text-white hover:bg-emerald-600 shadow-sm"
                                 >
                                     {phase === 'sending'
