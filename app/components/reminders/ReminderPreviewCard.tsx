@@ -19,6 +19,8 @@ export interface PreviewItem {
     cooldownSince: string | null;
     lastReminder: { sentAt: string; status: string } | null;
     isDuplicate: boolean;
+    resolvedMessage: string | null;
+    invalidSlots: string[];
 }
 
 interface Props {

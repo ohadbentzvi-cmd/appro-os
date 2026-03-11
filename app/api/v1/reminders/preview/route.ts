@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server';
 import { db } from '@apro/db';
-import { charges, units, buildings, unitRoles, people, appRoles } from '@apro/db/src/schema';
+import { charges, units, buildings, unitRoles, people, appRoles, whatsappTemplates } from '@apro/db/src/schema';
 import { eq, and, inArray, isNull } from 'drizzle-orm';
 import { getServerUser } from '@/lib/supabase/server';
 import { validateBody } from '@/lib/api/validate';
@@ -8,6 +8,7 @@ import { errorResponse, successResponse } from '@/lib/api/response';
 import { reminderPreviewSchema } from '@/lib/api/schemas';
 import { normalizeIsraeliPhone } from '@/lib/reminders/phone';
 import { getBlockedPersonIds } from '@/lib/reminders/cooldown';
+import { resolveContentVariables, type ResolvedVarsContext } from '@/lib/reminders/templates';
 
 export async function POST(req: NextRequest) {
     try {
@@ -25,7 +26,7 @@ export async function POST(req: NextRequest) {
 
         const valid = await validateBody(req, reminderPreviewSchema);
         if ('error' in valid) return valid.error;
-        const { chargeIds, periodMonth } = valid.data;
+        const { chargeIds, periodMonth, templateId } = valid.data;
 
         // Fetch charge + unit + building + fee payer for each chargeId in one query
         const rows = await db
@@ -234,10 +235,48 @@ export async function POST(req: NextRequest) {
             };
         });
 
-        const sendableCount = preview.filter(p => p.blockReason === null).length;
-        const blockedCount = preview.filter(p => p.blockReason !== null).length;
+        // Resolve template variables if templateId was provided
+        let templateForResolution: typeof whatsappTemplates.$inferSelect | null = null;
+        if (templateId) {
+            const [t] = await db.select().from(whatsappTemplates)
+                .where(and(
+                    eq(whatsappTemplates.id, templateId),
+                    eq(whatsappTemplates.tenantId, tenantId),
+                ));
+            templateForResolution = t ?? null;
+        }
 
-        return successResponse(preview, { sendableCount, blockedCount });
+        const enrichedPreview = preview.map(item => {
+            if (!templateForResolution || item.blockReason !== null) {
+                return { ...item, resolvedMessage: null, invalidSlots: [] as string[] };
+            }
+
+            const ctx: ResolvedVarsContext = {
+                recipientName: item.recipientName ?? '',
+                periodMonth,
+                amountDue: item.amountDue ?? undefined,
+                dueDate: item.dueDate ?? null,
+                buildingName: item.buildingName ?? undefined,
+                unitNumber: item.unitIdentifier ?? undefined,
+            };
+
+            const resolved = resolveContentVariables(templateForResolution.variableMapping ?? {}, ctx);
+            const invalidSlots = Object.entries(resolved)
+                .filter(([, v]) => v === '')
+                .map(([k]) => k);
+
+            const resolvedMessage = templateForResolution.body.replace(
+                /\{\{(\d+)\}\}/g,
+                (_, slot) => resolved[slot] ?? `{{${slot}}}`,
+            );
+
+            return { ...item, resolvedMessage, invalidSlots };
+        });
+
+        const sendableCount = enrichedPreview.filter(p => p.blockReason === null).length;
+        const blockedCount = enrichedPreview.filter(p => p.blockReason !== null).length;
+
+        return successResponse(enrichedPreview, { sendableCount, blockedCount });
     } catch (e) {
         console.error('Reminders preview error', e);
         return errorResponse('Internal server error', 500, e);
