@@ -9,7 +9,6 @@ const initialBuildingState: WizardBuilding = {
     street: '',
     street_number: '',
     city: '',
-    billing_day: 10,
 };
 
 function makeEmptyUnit(unitNumber: string): WizardUnitUI {

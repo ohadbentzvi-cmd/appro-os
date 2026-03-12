@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server'
 import { db, unitPaymentConfig, units } from '@apro/db'
-import { eq, and, isNull, desc, sql } from 'drizzle-orm'
+import { eq, and } from 'drizzle-orm'
 import { successResponse, errorResponse } from '@/lib/api/response'
 import { getServerUser } from '@/lib/supabase/server'
 import { validateBody } from '@/lib/api/validate'
@@ -39,10 +39,8 @@ export async function GET(
                 and(
                     eq(unitPaymentConfig.unitId, unitId),
                     eq(unitPaymentConfig.tenantId, tenantId),
-                    isNull(unitPaymentConfig.effectiveUntil)
                 )
             )
-            .orderBy(desc(unitPaymentConfig.createdAt))
             .limit(1)
 
         return successResponse(config || null)
@@ -52,7 +50,7 @@ export async function GET(
     }
 }
 
-export async function POST(
+export async function PATCH(
     req: NextRequest,
     { params }: { params: Promise<{ id: string, unitId: string }> }
 ) {
@@ -83,39 +81,26 @@ export async function POST(
             return errorResponse('Unit not found', 404)
         }
 
-        let newConfig;
-
-        await db.transaction(async (tx) => {
-            // Close the current active config if it exists
-            await tx.update(unitPaymentConfig)
-                .set({
-                    // effectiveUntil = effectiveFrom - 1 day
-                    effectiveUntil: sql`${data.effectiveFrom}::date - interval '1 day'`
-                })
-                .where(
-                    and(
-                        eq(unitPaymentConfig.unitId, unitId),
-                        eq(unitPaymentConfig.tenantId, tenantId),
-                        isNull(unitPaymentConfig.effectiveUntil)
-                    )
-                );
-
-            // Insert new config row
-            const [insertedConfig] = await tx.insert(unitPaymentConfig)
-                .values({
-                    tenantId,
-                    unitId,
+        const [upserted] = await db
+            .insert(unitPaymentConfig)
+            .values({
+                tenantId,
+                unitId,
+                monthlyAmount: data.monthlyAmount,
+                billingDay: data.billingDay,
+            })
+            .onConflictDoUpdate({
+                target: unitPaymentConfig.unitId,
+                set: {
                     monthlyAmount: data.monthlyAmount,
-                    effectiveFrom: data.effectiveFrom,
-                })
-                .returning();
+                    billingDay: data.billingDay,
+                },
+            })
+            .returning()
 
-            newConfig = insertedConfig;
-        });
-
-        return successResponse(newConfig)
+        return successResponse(upserted)
     } catch (e) {
-        console.error('Payment Config POST error', e)
+        console.error('Payment Config PATCH error', e)
         return await errorResponse('Internal server error', 500, e, req)
     }
 }

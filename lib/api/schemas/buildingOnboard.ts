@@ -14,6 +14,7 @@ const unitSchema = z.object({
     tenant: personSchema.optional(),
     fee_payer: z.enum(['owner', 'tenant', 'none']),
     monthly_amount_agorot: z.number().int().min(1).optional(),
+    billing_day: z.number().int().min(1).max(28).optional(),
 });
 
 export const buildingOnboardSchema = z.object({
@@ -24,7 +25,6 @@ export const buildingOnboardSchema = z.object({
         city: z.string().min(1, 'City is required'),
         floors: z.number().int().min(1).optional(),
         year_built: z.number().int().min(1800).optional(),
-        billing_day: z.number().int().min(1).max(28).optional(),
     }),
     units: z.array(unitSchema).min(0),
 });

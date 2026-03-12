@@ -22,10 +22,7 @@ export async function GET(req: NextRequest) {
             })
             .from(units)
             .innerJoin(buildings, eq(units.buildingId, buildings.id))
-            .leftJoin(unitPaymentConfig, and(
-                eq(units.id, unitPaymentConfig.unitId),
-                isNull(unitPaymentConfig.effectiveUntil)
-            ))
+            .leftJoin(unitPaymentConfig, eq(units.id, unitPaymentConfig.unitId))
             .where(
                 and(
                     eq(units.tenantId, tenant_id),

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Pencil, Loader2, Save, X } from 'lucide-react';
+import { Pencil, Loader2, Save } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -10,12 +10,12 @@ interface PaymentConfigData {
     id: string;
     unitId: string;
     monthlyAmount: number; // in agorot
-    effectiveFrom: string;
+    billingDay: number | null;
 }
 
 const formSchema = z.object({
-    monthlyAmountILS: z.number().int().positive().max(10000), // Max 10,000 ILS for sanity
-    effectiveFrom: z.string().min(1, 'שדה חובה')
+    monthlyAmountILS: z.number().int().positive().max(10000),
+    billingDay: z.number().int().min(1).max(28),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -37,7 +37,7 @@ export default function PaymentConfigSection({ buildingId, unitId }: { buildingI
             const res = await fetch(`/api/v1/buildings/${buildingId}/units/${unitId}/payment-config`);
             if (res.ok) {
                 const json = await res.json();
-                setConfig(json.data); // data can be null if not set
+                setConfig(json.data);
             }
         } catch (e) {
             console.error('Failed to fetch payment config', e);
@@ -53,17 +53,9 @@ export default function PaymentConfigSection({ buildingId, unitId }: { buildingI
     const handleEditClick = () => {
         if (config) {
             setValue('monthlyAmountILS', config.monthlyAmount / 100);
-
-            // Format existing date to YYYY-MM-DD for the date picker
-            const date = new Date(config.effectiveFrom);
-            setValue('effectiveFrom', date.toISOString().split('T')[0]);
+            if (config.billingDay) setValue('billingDay', config.billingDay);
         } else {
-            // Default to 1st of next month
-            const nextMonth = new Date();
-            nextMonth.setMonth(nextMonth.getMonth() + 1);
-            nextMonth.setDate(1);
-            setValue('effectiveFrom', nextMonth.toISOString().split('T')[0]);
-            setValue('monthlyAmountILS', '' as unknown as number);
+            reset();
         }
         setIsEditing(true);
         setSubmitError(null);
@@ -80,14 +72,14 @@ export default function PaymentConfigSection({ buildingId, unitId }: { buildingI
             setSubmitError(null);
 
             const payload = {
-                monthlyAmount: data.monthlyAmountILS * 100, // ILS to Agorot
-                effectiveFrom: data.effectiveFrom
+                monthlyAmount: data.monthlyAmountILS * 100,
+                billingDay: data.billingDay,
             };
 
             const res = await fetch(`/api/v1/buildings/${buildingId}/units/${unitId}/payment-config`, {
-                method: 'POST',
+                method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
+                body: JSON.stringify(payload),
             });
 
             const json = await res.json();
@@ -103,15 +95,6 @@ export default function PaymentConfigSection({ buildingId, unitId }: { buildingI
         } finally {
             setIsSubmitting(false);
         }
-    };
-
-    const formatDate = (dateString: string) => {
-        const date = new Date(dateString);
-        return date.toLocaleDateString('he-IL', {
-            day: '2-digit',
-            month: '2-digit',
-            year: 'numeric'
-        });
     };
 
     return (
@@ -141,14 +124,17 @@ export default function PaymentConfigSection({ buildingId, unitId }: { buildingI
 
                         <div>
                             <label className="block text-sm font-semibold text-gray-700 mb-1">
-                                תחולה מתאריך
+                                יום חיוב
                             </label>
                             <input
-                                type="date"
-                                {...register('effectiveFrom')}
+                                type="number"
+                                min="1"
+                                max="28"
+                                {...register('billingDay', { valueAsNumber: true })}
                                 className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-apro-green focus:border-apro-green outline-none transition-colors"
                             />
-                            {errors.effectiveFrom && <p className="text-red-500 text-sm mt-1">{errors.effectiveFrom.message}</p>}
+                            <p className="text-xs text-gray-400 mt-1">תאריך פירעון בכל חודש (1–28)</p>
+                            {errors.billingDay && <p className="text-red-500 text-sm mt-1">{errors.billingDay.message}</p>}
                         </div>
                     </div>
 
@@ -185,7 +171,7 @@ export default function PaymentConfigSection({ buildingId, unitId }: { buildingI
                             ₪{(config.monthlyAmount / 100).toLocaleString()}
                         </div>
                         <div className="text-sm text-gray-500 mt-2">
-                            בתוקף מתאריך: <span className="font-medium text-gray-700">{formatDate(config.effectiveFrom)}</span>
+                            יום חיוב: <span className="font-medium text-gray-700">{config.billingDay ?? '—'}</span>
                         </div>
                     </div>
 
@@ -194,7 +180,7 @@ export default function PaymentConfigSection({ buildingId, unitId }: { buildingI
                         className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors flex items-center gap-2 font-medium"
                     >
                         <Pencil className="w-4 h-4" />
-                        <span className="hidden sm:inline">עדכן סכום</span>
+                        <span className="hidden sm:inline">עדכן</span>
                     </button>
                 </div>
             ) : (

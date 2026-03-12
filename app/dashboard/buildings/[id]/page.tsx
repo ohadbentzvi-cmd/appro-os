@@ -9,6 +9,7 @@ import GenerateChargesWrapper from '@/app/dashboard/payments/GenerateChargesWrap
 import PaymentsGrid from './PaymentsGrid';
 import ChargeDetailDrawer from './ChargeDetailDrawer';
 import EditBuildingModal from '@/app/components/buildings/EditBuildingModal';
+import PaymentConfigBulkEditor from '@/app/components/buildings/PaymentConfigBulkEditor';
 
 interface UnitRowData {
     id: string;
@@ -27,7 +28,7 @@ export default function BuildingDetail() {
     const [units, setUnits] = React.useState<UnitRowData[]>([]);
     const [loading, setLoading] = React.useState(true);
     const [error, setError] = React.useState<string | null>(null);
-    const [activeTab, setActiveTab] = React.useState<'info' | 'units' | 'payments'>('info');
+    const [activeTab, setActiveTab] = React.useState<'info' | 'units' | 'payments' | 'payment-settings'>('info');
 
     const [drawerChargeId, setDrawerChargeId] = React.useState<string | null>(null);
     const [drawerUnitIdentifier, setDrawerUnitIdentifier] = React.useState<string>('');
@@ -222,6 +223,20 @@ export default function BuildingDetail() {
                             />
                         )}
                     </button>
+                    <button
+                        onClick={() => setActiveTab('payment-settings')}
+                        className={`flex items-center gap-2 px-6 py-4 font-bold text-sm lg:text-base transition-colors relative whitespace-nowrap ${activeTab === 'payment-settings' ? 'text-apro-green' : 'text-gray-500 hover:text-gray-700'
+                            }`}
+                    >
+                        <Grid className="w-5 h-5" />
+                        <span>הגדרות תשלום</span>
+                        {activeTab === 'payment-settings' && (
+                            <motion.div
+                                layoutId="activeTabIndicator"
+                                className="absolute bottom-0 left-0 right-0 h-0.5 bg-apro-green"
+                            />
+                        )}
+                    </button>
                 </div>
 
                 {/* Tab Content */}
@@ -279,12 +294,6 @@ export default function BuildingDetail() {
                                             <label className="block text-sm font-semibold text-gray-500 mb-2">סה״כ יחידות</label>
                                             <div className="w-full bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 text-gray-700 font-bold text-center">
                                                 {building.numUnits || '0'}
-                                            </div>
-                                        </div>
-                                        <div className="flex-1">
-                                            <label className="block text-sm font-semibold text-gray-500 mb-2">יום חיוב</label>
-                                            <div className="w-full bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 text-gray-700 font-bold text-center">
-                                                {building.billingDay ?? 10}
                                             </div>
                                         </div>
                                     </div>
@@ -414,6 +423,15 @@ export default function BuildingDetail() {
                                 buildingId={id}
                                 onRowClick={handleRowClick}
                             />
+                        </motion.div>
+                    )}
+
+                    {activeTab === 'payment-settings' && (
+                        <motion.div
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                        >
+                            <PaymentConfigBulkEditor buildingId={id} />
                         </motion.div>
                     )}
                 </div>
