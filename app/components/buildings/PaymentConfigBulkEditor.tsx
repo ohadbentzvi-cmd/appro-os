@@ -134,15 +134,15 @@ export default function PaymentConfigBulkEditor({ buildingId }: { buildingId: st
     }
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-6" dir="rtl">
             <div>
                 <h2 className="text-xl font-bold text-apro-navy">הגדרות תשלום</h2>
                 <p className="text-sm text-gray-500 mt-1">עדכן סכום חודשי ויום חיוב לכל יחידה. שינויים ייכנסו לתוקף לחיובים עתידיים.</p>
             </div>
 
             {/* Apply to all */}
-            <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm flex flex-col md:flex-row gap-4 items-end">
-                <div>
+            <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm flex flex-col md:flex-row md:items-end gap-4">
+                <div className="flex-1 md:flex-none">
                     <label className="block text-sm font-semibold text-gray-700 mb-2">סכום אחיד (₪)</label>
                     <div className="relative">
                         <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 font-bold text-sm">₪</span>
@@ -151,12 +151,12 @@ export default function PaymentConfigBulkEditor({ buildingId }: { buildingId: st
                             min="1"
                             value={bulkAmount}
                             onChange={e => setBulkAmount(e.target.value)}
-                            className="w-40 bg-gray-50 border border-gray-200 rounded-xl py-2.5 pr-8 pl-3 focus:outline-none focus:ring-2 focus:ring-apro-green/50 focus:border-apro-green transition-all"
+                            className="w-full md:w-40 bg-gray-50 border border-gray-200 rounded-xl py-2.5 pr-8 pl-3 focus:outline-none focus:ring-2 focus:ring-apro-green/50 focus:border-apro-green transition-all"
                             placeholder="0"
                         />
                     </div>
                 </div>
-                <div>
+                <div className="flex-1 md:flex-none">
                     <label className="block text-sm font-semibold text-gray-700 mb-2">יום חיוב אחיד (1–28)</label>
                     <input
                         type="number"
@@ -164,14 +164,14 @@ export default function PaymentConfigBulkEditor({ buildingId }: { buildingId: st
                         max={28}
                         value={bulkBillingDay}
                         onChange={e => setBulkBillingDay(e.target.value)}
-                        className="w-28 bg-gray-50 border border-gray-200 rounded-xl py-2.5 px-3 focus:outline-none focus:ring-2 focus:ring-apro-green/50 focus:border-apro-green transition-all"
+                        className="w-full md:w-28 bg-gray-50 border border-gray-200 rounded-xl py-2.5 px-3 focus:outline-none focus:ring-2 focus:ring-apro-green/50 focus:border-apro-green transition-all"
                         placeholder="1–28"
                     />
                 </div>
                 <button
                     onClick={applyToAll}
                     disabled={!bulkAmount && !bulkBillingDay}
-                    className="px-5 py-2.5 bg-apro-navy text-white font-bold rounded-xl hover:bg-slate-800 transition-colors disabled:bg-gray-200 disabled:text-gray-400 disabled:cursor-not-allowed"
+                    className="w-full md:w-auto px-5 py-2.5 bg-apro-navy text-white font-bold rounded-xl hover:bg-slate-800 transition-colors disabled:bg-gray-200 disabled:text-gray-400 disabled:cursor-not-allowed"
                 >
                     החל על כולם
                 </button>
@@ -179,7 +179,7 @@ export default function PaymentConfigBulkEditor({ buildingId }: { buildingId: st
 
             {/* Per-unit table — desktop */}
             <div className="hidden md:block bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-                <table className="w-full text-right" dir="rtl">
+                <table className="w-full text-right">
                     <thead className="bg-gray-50 border-b border-gray-100">
                         <tr>
                             <th className="py-3 px-6 font-bold text-gray-500 text-sm rounded-tr-2xl">יחידה</th>
