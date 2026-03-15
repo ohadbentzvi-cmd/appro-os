@@ -4,28 +4,28 @@ import { paymentConfigSchema, generateChargesSchema, paymentSchema } from '@/lib
 describe('Zod Schema Validation', () => {
 
     describe('unit_payment_config (paymentConfigSchema)', () => {
-        it('should pass with valid amount and effective_from', () => {
-            const result = paymentConfigSchema.safeParse({ monthlyAmount: 100000, effectiveFrom: '2026-01-01' });
+        it('should pass with valid amount and billingDay', () => {
+            const result = paymentConfigSchema.safeParse({ monthlyAmount: 100000, billingDay: 10 });
             expect(result.success).toBe(true);
         });
 
         it('should fail when amount is 0', () => {
-            const result = paymentConfigSchema.safeParse({ monthlyAmount: 0, effectiveFrom: '2025-01-01' });
+            const result = paymentConfigSchema.safeParse({ monthlyAmount: 0, billingDay: 10 });
             expect(result.success).toBe(false);
         });
 
         it('should fail when amount is negative', () => {
-            const result = paymentConfigSchema.safeParse({ monthlyAmount: -500, effectiveFrom: '2025-01-01' });
+            const result = paymentConfigSchema.safeParse({ monthlyAmount: -500, billingDay: 10 });
             expect(result.success).toBe(false);
         });
 
-        it('should fail when effective_from is missing', () => {
+        it('should fail when billingDay is missing', () => {
             const result = paymentConfigSchema.safeParse({ monthlyAmount: 100000 });
             expect(result.success).toBe(false);
         });
 
-        it('should fail when effective_from is a garbage string', () => {
-            const result = paymentConfigSchema.safeParse({ monthlyAmount: 100000, effectiveFrom: 'not-a-date' });
+        it('should fail when billingDay is out of range', () => {
+            const result = paymentConfigSchema.safeParse({ monthlyAmount: 100000, billingDay: 29 });
             expect(result.success).toBe(false);
         });
     });
