@@ -41,6 +41,7 @@ export async function POST(req: NextRequest) {
                 dueDate: charges.dueDate,
                 personId: people.id,
                 whatsappName: people.whatsappName,
+                availableOnWhatsapp: people.availableOnWhatsapp,
                 phone: people.phone,
             })
             .from(charges)
@@ -133,6 +134,24 @@ export async function POST(req: NextRequest) {
                     recipientName: null,
                     recipientPhone: null,
                     blockReason: 'no_fee_payer' as const,
+                    cooldownSince: null,
+                    lastReminder,
+                    isDuplicate: false,
+                };
+            }
+
+            // Guard: person opted out of WhatsApp
+            if (row.availableOnWhatsapp === false) {
+                return {
+                    chargeId,
+                    unitIdentifier: row.unitNumber,
+                    buildingAddress: row.buildingAddress,
+                    buildingId: row.buildingId,
+                    ...chargeFields,
+                    recipientPersonId: row.personId,
+                    recipientName: row.whatsappName ?? null,
+                    recipientPhone: row.phone ?? null,
+                    blockReason: 'not_on_whatsapp' as const,
                     cooldownSince: null,
                     lastReminder,
                     isDuplicate: false,

@@ -23,6 +23,7 @@ export interface Person {
     phone: string;
     email: string;
     whatsapp_name: string | null;
+    available_on_whatsapp: boolean;
     created_at: string;
 }
 

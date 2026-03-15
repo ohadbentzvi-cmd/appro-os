@@ -35,6 +35,7 @@ async function fetchPreviewWithTemplate(
 
 const BLOCK_REASON_LABEL: Record<string, string> = {
     no_fee_payer: 'אין משלם מוגדר ליחידה',
+    not_on_whatsapp: 'הדייר אינו זמין בוואטסאפ',
     no_whatsapp_name: 'חסר שם להודעות אוטומטיות',
     no_phone: 'חסר מספר טלפון',
     invalid_phone: 'מספר טלפון לא תקין',

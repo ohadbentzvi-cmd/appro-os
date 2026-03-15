@@ -1,4 +1,4 @@
-import { pgTable, uuid, text, timestamp, uniqueIndex } from 'drizzle-orm/pg-core';
+import { pgTable, uuid, text, timestamp, uniqueIndex, boolean } from 'drizzle-orm/pg-core';
 
 export const people = pgTable('people', {
     id: uuid('id').primaryKey().defaultRandom(),
@@ -8,6 +8,7 @@ export const people = pgTable('people', {
     email: text('email'),
     phone: text('phone'),
     whatsappName: text('whatsapp_name'),
+    availableOnWhatsapp: boolean('available_on_whatsapp').notNull().default(true),
     createdAt: timestamp('created_at').defaultNow().notNull(),
 }, (t) => ({
     // Unique per tenant: same phone can exist across different tenants
