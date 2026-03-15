@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server'
 import { db, unitPaymentConfig, units, charges } from '@apro/db'
-import { eq, and, gte, inArray } from 'drizzle-orm'
+import { eq, and, gte, inArray, asc, sql } from 'drizzle-orm'
 import { z } from 'zod'
 import { successResponse, errorResponse } from '@/lib/api/response'
 import { getServerUser } from '@/lib/supabase/server'
@@ -46,7 +46,7 @@ export async function GET(
                 )
             )
             .where(and(eq(units.buildingId, buildingId), eq(units.tenantId, tenantId)))
-            .orderBy(units.floor, units.unitNumber)
+            .orderBy(asc(units.floor), sql`length(${units.unitNumber})`, asc(units.unitNumber))
 
         const result = rows.map(row => ({
             unitId: row.unitId,

@@ -4,6 +4,16 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [0.1.5] - 2026-03-16
+
+### Added
+- **Owner & tenant contact popover**: Clicking a name chip in the building units table opens a popover with phone and email links for that person.
+
+### Changed
+- **Units table split view**: The building detail page now shows separate "בעל הנכס" and "דייר" columns (with clickable name chips) instead of a single "איש קשר פעיל" + role badge.
+- **Units API expanded**: `GET /api/v1/buildings/[id]/units` now returns `ownerName`, `ownerPhone`, `ownerEmail`, `ownerPersonId`, `tenantName`, `tenantPhone`, `tenantEmail`, `tenantPersonId` instead of `activeOccupantName` / `activeRoleType`.
+- **Natural unit ordering**: Units are now ordered by `floor ASC, length(unitNumber) ASC, unitNumber ASC` in both the units and payment-configs APIs, so unit numbers sort naturally (e.g. 1 before 10).
+
 ## [0.1.4] - 2026-03-15
 
 ### Added

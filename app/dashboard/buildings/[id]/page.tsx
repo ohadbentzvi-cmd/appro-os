@@ -3,8 +3,8 @@
 import React from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Building2, ChevronLeft, Loader2, AlertCircle, ChevronRight, Info, Grid, MapPin, Users, Pencil, SlidersHorizontal } from 'lucide-react';
-import { motion } from 'motion/react';
+import { Building2, ChevronLeft, Loader2, AlertCircle, ChevronRight, Info, Grid, MapPin, Users, Pencil, SlidersHorizontal, Phone, Mail, X } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
 import EditBuildingModal from '@/app/components/buildings/EditBuildingModal';
 import PaymentConfigBulkEditor from '@/app/components/buildings/PaymentConfigBulkEditor';
 
@@ -12,8 +12,14 @@ interface UnitRowData {
     id: string;
     unitNumber: string;
     floor: number;
-    active_occupant_name: string | null;
-    active_role_type: string | null;
+    ownerName: string | null;
+    ownerPersonId: string | null;
+    ownerPhone: string | null;
+    ownerEmail: string | null;
+    tenantName: string | null;
+    tenantPersonId: string | null;
+    tenantPhone: string | null;
+    tenantEmail: string | null;
 }
 
 export default function BuildingDetail() {
@@ -28,6 +34,14 @@ export default function BuildingDetail() {
     const [activeTab, setActiveTab] = React.useState<'info' | 'units' | 'payment-settings'>('info');
 
     const [isEditBuildingOpen, setIsEditBuildingOpen] = React.useState(false);
+    const [popover, setPopover] = React.useState<{ name: string; phone: string | null; email: string | null; rect: DOMRect } | null>(null);
+
+    React.useEffect(() => {
+        if (!popover) return;
+        const close = () => setPopover(null);
+        window.addEventListener('click', close);
+        return () => window.removeEventListener('click', close);
+    }, [popover]);
 
     React.useEffect(() => {
         async function fetchBuildingData() {
@@ -59,14 +73,7 @@ export default function BuildingDetail() {
 
                 setBuilding(buildingData.data);
 
-                // Process units to map camelCase response to what the component expects
-                const processedUnits: UnitRowData[] = (unitsData.data || []).map((unit: any) => ({
-                    ...unit,
-                    active_occupant_name: unit.activeOccupantName,
-                    active_role_type: unit.activeRoleType
-                }));
-
-                setUnits(processedUnits);
+                setUnits(unitsData.data || []);
 
             } catch (err: any) {
                 console.error('Error fetching building detail:', err);
@@ -120,9 +127,23 @@ export default function BuildingDetail() {
         );
     }
 
-    const roleTranslations: Record<string, string> = {
-        'owner': 'בעלים',
-        'tenant': 'שוכר'
+    const handlePersonClick = (e: React.MouseEvent, name: string, phone: string | null, email: string | null) => {
+        e.stopPropagation();
+        const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+        setPopover({ name, phone, email, rect });
+    };
+
+    const PersonChip = ({ name, phone, email }: { name: string | null; phone?: string | null; email?: string | null }) => {
+        if (!name) return <span className="text-gray-400 italic text-sm">-- ריק --</span>;
+        return (
+            <button
+                onClick={(e) => handlePersonClick(e, name, phone ?? null, email ?? null)}
+                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-sm font-medium text-gray-800 bg-gray-50 border border-gray-200 hover:border-apro-green hover:text-apro-green transition-all cursor-pointer"
+            >
+                <Users className="w-3.5 h-3.5 text-gray-400" />
+                {name}
+            </button>
+        );
     };
 
     return (
@@ -291,17 +312,13 @@ export default function BuildingDetail() {
                                                 className="flex items-center gap-3 px-4 py-4 cursor-pointer active:bg-gray-50"
                                             >
                                                 <div className="flex-1 min-w-0">
-                                                    <div className="flex items-center gap-2 mb-0.5">
+                                                    <div className="flex items-center gap-2 mb-1">
                                                         <span className="w-2 h-2 rounded-full bg-apro-green shrink-0" />
                                                         <span className="font-bold text-apro-navy">דירה {unit.unitNumber || '-'}</span>
-                                                        {unit.active_role_type && (
-                                                            <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-bold border ${unit.active_role_type === 'owner' ? 'bg-blue-50 text-blue-700 border-blue-100' : 'bg-orange-50 text-orange-700 border-orange-100'}`}>
-                                                                {roleTranslations[unit.active_role_type] || unit.active_role_type}
-                                                            </span>
-                                                        )}
                                                     </div>
-                                                    <div className="text-sm text-gray-500 truncate">
-                                                        {unit.active_occupant_name || <span className="italic">ריק</span>}
+                                                    <div className="flex flex-col gap-0.5 text-sm text-gray-500">
+                                                        <span className="truncate">בעלים: {unit.ownerName || <span className="italic">ריק</span>}</span>
+                                                        <span className="truncate">דייר: {unit.tenantName || <span className="italic">ריק</span>}</span>
                                                     </div>
                                                 </div>
                                                 <ChevronLeft className="w-4 h-4 text-gray-400 shrink-0" />
@@ -316,8 +333,8 @@ export default function BuildingDetail() {
                                                 <tr className="bg-gray-50/80 text-gray-500 text-sm uppercase tracking-wider">
                                                     <th className="px-6 py-4 font-semibold">מספר יחידה</th>
                                                     <th className="px-6 py-4 font-semibold text-center">קומה</th>
-                                                    <th className="px-6 py-4 font-semibold">איש קשר פעיל</th>
-                                                    <th className="px-6 py-4 font-semibold">סוג</th>
+                                                    <th className="px-6 py-4 font-semibold">בעל הנכס</th>
+                                                    <th className="px-6 py-4 font-semibold">דייר</th>
                                                     <th className="px-6 py-4"></th>
                                                 </tr>
                                             </thead>
@@ -340,23 +357,10 @@ export default function BuildingDetail() {
                                                             </div>
                                                         </td>
                                                         <td className="px-6 py-4">
-                                                            {unit.active_occupant_name ? (
-                                                                <span className="font-medium text-gray-800 flex items-center gap-2">
-                                                                    <Users className="w-4 h-4 text-gray-400" />
-                                                                    {unit.active_occupant_name}
-                                                                </span>
-                                                            ) : (
-                                                                <span className="text-gray-400 italic text-sm">-- ריק --</span>
-                                                            )}
+                                                            <PersonChip name={unit.ownerName} phone={unit.ownerPhone} email={unit.ownerEmail} />
                                                         </td>
                                                         <td className="px-6 py-4">
-                                                            {unit.active_role_type ? (
-                                                                <span className={`inline-flex px-3 py-1 rounded-full text-xs font-bold border ${unit.active_role_type === 'owner' ? 'bg-blue-50 text-blue-700 border-blue-100' : 'bg-orange-50 text-orange-700 border-orange-100'}`}>
-                                                                    {roleTranslations[unit.active_role_type] || unit.active_role_type}
-                                                                </span>
-                                                            ) : (
-                                                                <span className="text-gray-400 text-sm">-</span>
-                                                            )}
+                                                            <PersonChip name={unit.tenantName} phone={unit.tenantPhone} email={unit.tenantEmail} />
                                                         </td>
                                                         <td className="px-6 py-4 text-left">
                                                             <button className="text-gray-400 group-hover:text-apro-green transition-colors font-medium flex items-center gap-1 text-sm bg-transparent">
@@ -394,6 +398,64 @@ export default function BuildingDetail() {
                     setIsEditBuildingOpen(false);
                 }}
             />
+
+            {/* Person info popover */}
+            <AnimatePresence>
+                {popover && (
+                    <motion.div
+                        initial={{ opacity: 0, y: 4 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: 4 }}
+                        transition={{ duration: 0.15 }}
+                        className="fixed z-50 bg-white rounded-xl shadow-lg border border-gray-200 p-4 min-w-[220px]"
+                        style={{
+                            top: popover.rect.bottom + 8,
+                            left: Math.min(popover.rect.left, window.innerWidth - 240),
+                        }}
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <div className="flex items-center justify-between mb-3">
+                            <span className="font-bold text-apro-navy text-sm">{popover.name}</span>
+                            <button
+                                onClick={() => setPopover(null)}
+                                className="text-gray-400 hover:text-gray-600 transition-colors"
+                            >
+                                <X className="w-4 h-4" />
+                            </button>
+                        </div>
+                        <div className="space-y-2 text-sm">
+                            <div className="flex items-center gap-2 text-gray-600">
+                                <Phone className="w-3.5 h-3.5 text-gray-400 shrink-0" />
+                                {popover.phone ? (
+                                    <a
+                                        href={`tel:${popover.phone}`}
+                                        className="hover:text-apro-green transition-colors"
+                                        dir="ltr"
+                                    >
+                                        {popover.phone}
+                                    </a>
+                                ) : (
+                                    <span className="text-gray-400 italic">לא צוין</span>
+                                )}
+                            </div>
+                            <div className="flex items-center gap-2 text-gray-600">
+                                <Mail className="w-3.5 h-3.5 text-gray-400 shrink-0" />
+                                {popover.email ? (
+                                    <a
+                                        href={`mailto:${popover.email}`}
+                                        className="hover:text-apro-green transition-colors"
+                                        dir="ltr"
+                                    >
+                                        {popover.email}
+                                    </a>
+                                ) : (
+                                    <span className="text-gray-400 italic">לא צוין</span>
+                                )}
+                            </div>
+                        </div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
         </div>
     );
 }
