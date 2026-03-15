@@ -13,6 +13,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 - **Reminder preview refactor**: Replaced the inline 80-line guard chain in the preview route with a single call to `getPreviewBlockReason()`, making the route ~70 lines shorter.
+- **Blocked reminder display**: Warning items in the reminder modal now show `שם - כתובת - דירה X — סיבה` instead of just the unit number, making it clear which tenant is blocked and why.
 
 ## [0.1.1] - 2026-03-15
 
