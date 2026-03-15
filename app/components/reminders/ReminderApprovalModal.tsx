@@ -267,7 +267,8 @@ export default function ReminderApprovalModal({ isOpen, onClose, onSent, chargeI
                                                     <li key={item.chargeId} className="text-sm text-red-700 flex items-start gap-2">
                                                         <span className="mt-0.5 shrink-0">·</span>
                                                         <span>
-                                                            {item.buildingAddress && `${item.unitIdentifier} · ${item.buildingAddress} — `}
+                                                            {[item.recipientFullName, item.buildingAddress, item.unitIdentifier ? `דירה ${item.unitIdentifier}` : null].filter(Boolean).join(' - ')}
+                                                            {' — '}
                                                             {BLOCK_REASON_LABEL[item.blockReason!] ?? item.blockReason}
                                                             {(item.blockReason === 'no_whatsapp_name' || item.blockReason === 'no_phone') && item.recipientPersonId && (
                                                                 <Link
@@ -285,7 +286,8 @@ export default function ReminderApprovalModal({ isOpen, onClose, onSent, chargeI
                                                     <li key={item.chargeId} className="text-sm text-amber-700 flex items-start gap-2">
                                                         <span className="mt-0.5 shrink-0">·</span>
                                                         <span>
-                                                            {item.buildingAddress && `${item.unitIdentifier} · ${item.buildingAddress} — `}
+                                                            {[item.recipientFullName, item.buildingAddress, item.unitIdentifier ? `דירה ${item.unitIdentifier}` : null].filter(Boolean).join(' - ')}
+                                                            {' — '}
                                                             שני חיובים לאותו אדם, תישלח הודעה אחת בלבד
                                                         </span>
                                                     </li>
@@ -420,7 +422,7 @@ export default function ReminderApprovalModal({ isOpen, onClose, onSent, chargeI
                                         : <>
                                             <Send className="w-4 h-4" />
                                             אשר ושלח {sendableItems.length} הודעות
-                                          </>
+                                        </>
                                     }
                                 </button>
                                 <button
