@@ -5,7 +5,6 @@ export const createBuildingSchema = z.object({
     address: z.string().min(1),
     city: z.string().min(1),
     floors: z.number().int().positive(),
-    billingDay: z.number().int().min(1).max(28).optional(),
 })
 
 export const updateBuildingSchema = createBuildingSchema.partial()
@@ -71,13 +70,7 @@ export const updateUnitRoleSchema = z.object({
 
 export const paymentConfigSchema = z.object({
     monthlyAmount: z.number().int().positive().max(1000000), // in agorot
-    effectiveFrom: z.string().regex(/^\d{4}-\d{2}-\d{2}$/)
-        .refine(date => {
-            const dateObj = new Date(date);
-            const oneYearAgo = new Date();
-            oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
-            return dateObj >= oneYearAgo;
-        }, { message: "Date must not be in the past by more than 1 year" })
+    billingDay: z.number().int().min(1).max(28),
 })
 
 export const generateChargesSchema = z.object({

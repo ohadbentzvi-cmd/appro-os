@@ -12,4 +12,5 @@ export interface WizardUnitUI {
     tenant?: WizardPersonUI;
     fee_payer: 'owner' | 'tenant' | 'none';
     monthly_amount_agorot?: number;
+    billing_day?: number;
 }

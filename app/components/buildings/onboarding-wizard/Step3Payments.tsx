@@ -23,6 +23,7 @@ const HIGH_AMOUNT_THRESHOLD = 9999;
 
 export function Step3Payments({ wizard }: { wizard: ReturnType<typeof useWizardState> }) {
     const [bulkAmount, setBulkAmount] = useState<string>('');
+    const [bulkBillingDay, setBulkBillingDay] = useState<string>('');
     const [bulkWarning, setBulkWarning] = useState(false);
     const [openDropdown, setOpenDropdown] = useState<number | null>(null);
     const [dropdownPos, setDropdownPos] = useState<{ top: number; right: number } | null>(null);
@@ -82,6 +83,7 @@ export function Step3Payments({ wizard }: { wizard: ReturnType<typeof useWizardS
 
     const applyBulkAmount = () => {
         const amount = parseInt(bulkAmount, 10);
+        const billingDay = parseInt(bulkBillingDay, 10);
         if (isNaN(amount) || amount < 0) return;
         if (amount === 0) {
             wizard.units.forEach((_, index) => {
@@ -97,14 +99,19 @@ export function Step3Payments({ wizard }: { wizard: ReturnType<typeof useWizardS
         }
         const agorot = amount * 100;
         const dismissed = amount <= HIGH_AMOUNT_THRESHOLD;
+        const validBillingDay = !isNaN(billingDay) && billingDay >= 1 && billingDay <= 28 ? billingDay : undefined;
         wizard.units.forEach((_, index) => {
-            wizard.updateUnit(index, { monthly_amount_agorot: agorot });
+            wizard.updateUnit(index, {
+                monthly_amount_agorot: agorot,
+                ...(validBillingDay !== undefined ? { billing_day: validBillingDay } : {}),
+            });
         });
         // Batch the dismissed state update once, outside the loop
         setWarningDismissed(
             Object.fromEntries(wizard.units.map((_, index) => [index, dismissed]))
         );
         setBulkAmount('');
+        setBulkBillingDay('');
     };
 
     const handleUnitAmountChange = (index: number, val: string) => {
@@ -128,7 +135,7 @@ export function Step3Payments({ wizard }: { wizard: ReturnType<typeof useWizardS
         }
     };
 
-    const unitsWithoutPayment = wizard.units.filter(u => !u.monthly_amount_agorot);
+    const unitsWithoutPayment = wizard.units.filter(u => !u.monthly_amount_agorot || !u.billing_day);
 
     return (
         <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-500 pb-10">
@@ -137,32 +144,7 @@ export function Step3Payments({ wizard }: { wizard: ReturnType<typeof useWizardS
                 <p className="text-sm text-gray-500 mt-1">קבע את סכום דמי הניהול החודשי לכל דירה.</p>
             </div>
 
-            {/* Billing day */}
-            <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
-                <label className="block text-sm font-semibold text-gray-700 mb-2">יום חיוב בחודש</label>
-                <div className="flex items-center gap-4">
-                    <input
-                        type="number"
-                        min={1}
-                        max={28}
-                        value={wizard.building.billing_day ?? 10}
-                        onChange={(e) => {
-                            if (e.target.value === '') {
-                                wizard.setBuilding({ ...wizard.building, billing_day: 10 });
-                                return;
-                            }
-                            const val = parseInt(e.target.value, 10);
-                            if (!isNaN(val) && val >= 1 && val <= 28) {
-                                wizard.setBuilding({ ...wizard.building, billing_day: val });
-                            }
-                        }}
-                        className="w-28 bg-gray-50 border border-gray-200 rounded-xl py-3 px-4 focus:outline-none focus:ring-2 focus:ring-apro-green/50 focus:border-apro-green transition-all text-apro-navy font-bold"
-                    />
-                    <p className="text-sm text-gray-400">יום בחודש שבו יופקו חיובים (1–28)</p>
-                </div>
-            </div>
-
-            {/* Bulk amount setter */}
+            {/* Bulk setter */}
             <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm flex flex-col md:flex-row gap-4 items-end">
                 <div className="flex-1 w-full">
                     <label className="block text-sm font-semibold text-gray-700 mb-2">קבע סכום אחיד לכל הדירות (₪)</label>
@@ -177,6 +159,18 @@ export function Step3Payments({ wizard }: { wizard: ReturnType<typeof useWizardS
                             placeholder="0"
                         />
                     </div>
+                </div>
+                <div className="w-full md:w-36">
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">יום חיוב (1–28)</label>
+                    <input
+                        type="number"
+                        min={1}
+                        max={28}
+                        value={bulkBillingDay}
+                        onChange={(e) => setBulkBillingDay(e.target.value)}
+                        className="w-full bg-gray-50 border border-gray-200 rounded-xl py-3 px-4 focus:outline-none focus:ring-2 focus:ring-apro-green/50 focus:border-apro-green transition-all"
+                        placeholder="1–28"
+                    />
                 </div>
                 <button
                     onClick={applyBulkAmount}
@@ -201,6 +195,7 @@ export function Step3Payments({ wizard }: { wizard: ReturnType<typeof useWizardS
                             <th className="py-3 px-6 font-bold text-gray-500 text-sm rounded-tr-2xl">דירה</th>
                             <th className="py-3 px-6 font-bold text-gray-500 text-sm">משלם</th>
                             <th className="py-3 px-6 font-bold text-gray-500 text-sm w-[220px]">סכום חודשי (₪)</th>
+                            <th className="py-3 px-4 font-bold text-gray-500 text-sm w-24">יום חיוב</th>
                             <th className="py-3 px-4 w-16 rounded-tl-2xl"></th>
                         </tr>
                     </thead>
@@ -263,11 +258,29 @@ export function Step3Payments({ wizard }: { wizard: ReturnType<typeof useWizardS
                                         </div>
                                     </td>
 
+                                    {/* Billing day input */}
+                                    <td className="py-3 px-4">
+                                        <input
+                                            type="number"
+                                            min={1}
+                                            max={28}
+                                            className="w-20 bg-white border border-gray-200 rounded-lg py-2 px-3 focus:outline-none focus:ring-1 focus:ring-apro-green transition-all text-center"
+                                            value={unit.billing_day ?? ''}
+                                            placeholder="1–28"
+                                            onChange={(e) => {
+                                                const val = parseInt(e.target.value, 10);
+                                                wizard.updateUnit(index, {
+                                                    billing_day: !isNaN(val) && val >= 1 && val <= 28 ? val : undefined,
+                                                });
+                                            }}
+                                        />
+                                    </td>
+
                                     {/* Clear button */}
                                     <td className="py-3 px-4 text-center">
                                         <button
                                             onClick={() => {
-                                                wizard.updateUnit(index, { monthly_amount_agorot: undefined });
+                                                wizard.updateUnit(index, { monthly_amount_agorot: undefined, billing_day: undefined });
                                                 setAmountErrors(prev => { const e = { ...prev }; delete e[index]; return e; });
                                                 setWarningDismissed(prev => { const e = { ...prev }; delete e[index]; return e; });
                                             }}
@@ -282,7 +295,7 @@ export function Step3Payments({ wizard }: { wizard: ReturnType<typeof useWizardS
                         })}
                         {wizard.units.length === 0 && (
                             <tr>
-                                <td colSpan={4} className="py-8 text-center text-gray-400 font-bold">לא הוגדרו דירות.</td>
+                                <td colSpan={5} className="py-8 text-center text-gray-400 font-bold">לא הוגדרו דירות.</td>
                             </tr>
                         )}
                     </tbody>

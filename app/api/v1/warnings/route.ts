@@ -29,7 +29,7 @@ export async function GET(req: NextRequest) {
         const allActiveConfigs = await db
             .select()
             .from(unitPaymentConfig)
-            .where(and(eq(unitPaymentConfig.tenantId, tenant_id), isNull(unitPaymentConfig.effectiveUntil)));
+            .where(eq(unitPaymentConfig.tenantId, tenant_id));
 
         const allActiveRoles = await db
             .select()
@@ -42,7 +42,8 @@ export async function GET(req: NextRequest) {
 
         for (const unit of allUnitsRes) {
             const unitConfigs = allActiveConfigs.filter(c => c.unitId === unit.id);
-            if (unitConfigs.length === 0) {
+            const needsAction = unitConfigs.length === 0 || unitConfigs.some(c => c.billingDay == null);
+            if (needsAction) {
                 missingPaymentConfigCount.push({
                     unit_id: unit.id,
                     unit_identifier: unit.unitNumber,

@@ -58,7 +58,6 @@ export async function PATCH(
         if (data.address) updateData.addressStreet = data.address
         if (data.city) updateData.addressCity = data.city
         if (data.floors) updateData.numFloors = data.floors
-        if (data.billingDay != null) updateData.billingDay = data.billingDay
 
         const { tenantId } = await getServerUser()
 

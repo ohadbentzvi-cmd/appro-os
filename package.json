@@ -1,6 +1,6 @@
 {
   "name": "apro-next",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": true,
   "scripts": {
     "dev": "next dev --turbopack",
@@ -16,7 +16,9 @@
   "dependencies": {
     "@apro/db": "workspace:*",
     "@fontsource/assistant": "^5.2.9",
+    "@fontsource/heebo": "^5.2.8",
     "@hookform/resolvers": "^5.2.2",
+    "@react-pdf/renderer": "^4.3.2",
     "@sentry/nextjs": "^10.40.0",
     "@supabase/auth-helpers-nextjs": "^0.15.0",
     "@supabase/ssr": "^0.8.0",

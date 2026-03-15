@@ -3,12 +3,11 @@
 import React from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Building2, ChevronLeft, Loader2, AlertCircle, ChevronRight, Info, Grid, MapPin, Users, Pencil } from 'lucide-react';
+import { Building2, ChevronLeft, Loader2, AlertCircle, ChevronRight, Info, Grid, MapPin, Users, Pencil, SlidersHorizontal } from 'lucide-react';
 import { motion } from 'motion/react';
 import GenerateChargesWrapper from '@/app/dashboard/payments/GenerateChargesWrapper';
-import PaymentsGrid from './PaymentsGrid';
-import ChargeDetailDrawer from './ChargeDetailDrawer';
 import EditBuildingModal from '@/app/components/buildings/EditBuildingModal';
+import PaymentConfigBulkEditor from '@/app/components/buildings/PaymentConfigBulkEditor';
 
 interface UnitRowData {
     id: string;
@@ -27,29 +26,9 @@ export default function BuildingDetail() {
     const [units, setUnits] = React.useState<UnitRowData[]>([]);
     const [loading, setLoading] = React.useState(true);
     const [error, setError] = React.useState<string | null>(null);
-    const [activeTab, setActiveTab] = React.useState<'info' | 'units' | 'payments'>('info');
-
-    const [drawerChargeId, setDrawerChargeId] = React.useState<string | null>(null);
-    const [drawerUnitIdentifier, setDrawerUnitIdentifier] = React.useState<string>('');
-    const [drawerFloor, setDrawerFloor] = React.useState<number>(0);
-
-    const [drawerAmountDue, setDrawerAmountDue] = React.useState<number>(0);
-    const [drawerStatus, setDrawerStatus] = React.useState<string>('pending');
+    const [activeTab, setActiveTab] = React.useState<'info' | 'units' | 'payment-settings'>('info');
 
     const [isEditBuildingOpen, setIsEditBuildingOpen] = React.useState(false);
-
-    const handleRowClick = (chargeId: string, unitIdentifier: string, floor: number, amountDue: number, status: string) => {
-        setDrawerChargeId(chargeId);
-        setDrawerUnitIdentifier(unitIdentifier);
-        setDrawerFloor(floor);
-        setDrawerAmountDue(amountDue);
-        setDrawerStatus(status);
-    };
-
-    const closeDrawer = () => {
-        setDrawerChargeId(null);
-        // Optional: clear form state if necessary
-    };
 
     React.useEffect(() => {
         async function fetchBuildingData() {
@@ -209,13 +188,13 @@ export default function BuildingDetail() {
                         )}
                     </button>
                     <button
-                        onClick={() => setActiveTab('payments')}
-                        className={`flex items-center gap-2 px-6 py-4 font-bold text-sm lg:text-base transition-colors relative whitespace-nowrap ${activeTab === 'payments' ? 'text-apro-green' : 'text-gray-500 hover:text-gray-700'
+                        onClick={() => setActiveTab('payment-settings')}
+                        className={`flex items-center gap-2 px-6 py-4 font-bold text-sm lg:text-base transition-colors relative whitespace-nowrap ${activeTab === 'payment-settings' ? 'text-apro-green' : 'text-gray-500 hover:text-gray-700'
                             }`}
                     >
-                        <AlertCircle className="w-5 h-5" />
-                        <span>תשלומים</span>
-                        {activeTab === 'payments' && (
+                        <SlidersHorizontal className="w-5 h-5" />
+                        <span>הגדרות תשלום</span>
+                        {activeTab === 'payment-settings' && (
                             <motion.div
                                 layoutId="activeTabIndicator"
                                 className="absolute bottom-0 left-0 right-0 h-0.5 bg-apro-green"
@@ -279,12 +258,6 @@ export default function BuildingDetail() {
                                             <label className="block text-sm font-semibold text-gray-500 mb-2">סה״כ יחידות</label>
                                             <div className="w-full bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 text-gray-700 font-bold text-center">
                                                 {building.numUnits || '0'}
-                                            </div>
-                                        </div>
-                                        <div className="flex-1">
-                                            <label className="block text-sm font-semibold text-gray-500 mb-2">יום חיוב</label>
-                                            <div className="w-full bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 text-gray-700 font-bold text-center">
-                                                {building.billingDay ?? 10}
                                             </div>
                                         </div>
                                     </div>
@@ -402,7 +375,7 @@ export default function BuildingDetail() {
                         </motion.div>
                     )}
 
-                    {activeTab === 'payments' && (
+                    {activeTab === 'payment-settings' && (
                         <motion.div
                             initial={{ opacity: 0, y: 10 }}
                             animate={{ opacity: 1, y: 0 }}
@@ -410,24 +383,11 @@ export default function BuildingDetail() {
                             <div className="flex justify-end mb-4">
                                 <GenerateChargesWrapper buildingId={id} />
                             </div>
-                            <PaymentsGrid
-                                buildingId={id}
-                                onRowClick={handleRowClick}
-                            />
+                            <PaymentConfigBulkEditor buildingId={id} />
                         </motion.div>
                     )}
                 </div>
             </div>
-
-            <ChargeDetailDrawer
-                isOpen={!!drawerChargeId}
-                onClose={closeDrawer}
-                chargeId={drawerChargeId}
-                unitIdentifier={drawerUnitIdentifier}
-                floor={drawerFloor}
-                amountDue={drawerAmountDue}
-                status={drawerStatus}
-            />
 
             <EditBuildingModal
                 isOpen={isEditBuildingOpen}

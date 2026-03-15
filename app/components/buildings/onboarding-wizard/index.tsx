@@ -35,6 +35,7 @@ function buildApiUnits(units: WizardUnitUI[]) {
             floor: unit.floor,
             fee_payer: unit.fee_payer,
             monthly_amount_agorot: unit.monthly_amount_agorot,
+            billing_day: unit.billing_day,
             owner: buildPerson(unit.owner),
             tenant: buildPerson(unit.tenant),
         };

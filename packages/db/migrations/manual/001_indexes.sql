@@ -13,4 +13,4 @@ CREATE INDEX IF NOT EXISTS idx_charge_generation_log_tenant_id ON charge_generat
 
 CREATE INDEX IF NOT EXISTS idx_charges_unit_period ON charges(unit_id, period_month);
 CREATE INDEX IF NOT EXISTS idx_unit_roles_unit_active ON unit_roles(unit_id, effective_to) WHERE effective_to IS NULL;
-CREATE INDEX IF NOT EXISTS idx_unit_payment_config_unit_active ON unit_payment_config(unit_id, effective_until) WHERE effective_until IS NULL;
+-- idx_unit_payment_config_unit_active removed: effective_until was dropped in migration 0006

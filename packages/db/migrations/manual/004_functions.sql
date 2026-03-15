@@ -88,12 +88,11 @@ BEGIN
             date_trunc('month', target_month)::date,
             c.monthly_amount,
             'pending',
-            (date_trunc('month', target_month) + ((b.billing_day - 1) * interval '1 day'))::date
+            (date_trunc('month', target_month) + ((c.billing_day - 1) * interval '1 day'))::date
         FROM unit_payment_config c
         JOIN units u ON u.id = c.unit_id
-        JOIN buildings b ON b.id = u.building_id
         WHERE c.tenant_id = p_tenant_id
-          AND c.effective_until IS NULL
+          AND c.billing_day IS NOT NULL
         ON CONFLICT (unit_id, period_month) DO NOTHING
         RETURNING 1
     )

@@ -1,11 +1,12 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { X, Loader2, CreditCard, Calendar, FileText, Edit2, Send } from 'lucide-react';
+import { X, Loader2, CreditCard, Calendar, FileText, Edit2, Send, Download } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useRouter } from 'next/navigation';
 import ReminderStatusBadge from '@/app/components/reminders/ReminderStatusBadge';
 import ReminderApprovalModal from '@/app/components/reminders/ReminderApprovalModal';
+import { formatMoney, formatDate, paymentMethodLabels } from '@/lib/format';
 
 interface PaymentHistoryRow {
     id: string;
@@ -63,11 +64,13 @@ export default function ChargeDetailDrawer({
     const [submitError, setSubmitError] = useState<string | null>(null);
 
     const [editingPaymentId, setEditingPaymentId] = useState<string | null>(null);
+    const [lastNewPaymentId, setLastNewPaymentId] = useState<string | null>(null);
 
     useEffect(() => {
         if (!isOpen || !chargeId) {
             setIsFormMode(false);
             setEditingPaymentId(null);
+            setLastNewPaymentId(null);
             return;
         }
 
@@ -88,26 +91,6 @@ export default function ChargeDetailDrawer({
         }
         fetchPaymentHistory();
     }, [isOpen, chargeId]);
-
-    // Format money (agorot to ILS)
-    const formatMoney = (agorot: number) => {
-        const ils = Math.round(agorot / 100);
-        return new Intl.NumberFormat('he-IL', { style: 'currency', currency: 'ILS', maximumFractionDigits: 0 }).format(ils);
-    };
-
-    const formatDate = (dateStr: string) => {
-        const d = new Date(dateStr);
-        return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
-    };
-
-    const methodTranslations: Record<string, string> = {
-        'cash': 'מזומן',
-        'bank_transfer': 'העברה בנקאית',
-        'credit_card': 'כרטיס אשראי',
-        'check': 'צ׳ק',
-        'direct_debit': 'הוראת קבע',
-        'portal': 'אתר'
-    };
 
     const handleEditClick = (p: PaymentHistoryRow) => {
         setFormMethod(p.payment_method as any);
@@ -162,9 +145,9 @@ export default function ChargeDetailDrawer({
             }
 
             if (!editingPaymentId) {
-                // New payment: close drawer first, then update parent state and refresh.
-                // Closing first prevents any flicker from concurrent state mutations.
-                onClose();
+                // New payment: stay open and show the receipt download state.
+                setLastNewPaymentId(json.data.id);
+                setIsFormMode(false);
                 if (onPaymentSuccess) onPaymentSuccess('paid', amountDue);
                 router.refresh();
                 return;
@@ -181,6 +164,25 @@ export default function ChargeDetailDrawer({
             setSubmitError(err.message);
         } finally {
             setSubmitLoading(false);
+        }
+    };
+
+    const handleDownloadReceipt = async (paymentId: string) => {
+        try {
+            const res = await fetch(`/api/v1/payments/${paymentId}/receipt`);
+            if (!res.ok) throw new Error('שגיאה בהפקת הקבלה');
+            const disposition = res.headers.get('Content-Disposition') ?? '';
+            const match = disposition.match(/filename="([^"]+)"/);
+            const filename = match?.[1] ?? 'receipt.pdf';
+            const blob = await res.blob();
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            a.click();
+            URL.revokeObjectURL(url);
+        } catch (err: any) {
+            alert(err.message || 'שגיאה בהפקת הקבלה');
         }
     };
 
@@ -274,7 +276,7 @@ export default function ChargeDetailDrawer({
                                                             </span>
                                                             <div className="flex items-center gap-2">
                                                                 <span className="inline-flex px-2 py-1 rounded-md text-xs font-bold border bg-gray-50 text-gray-600 border-gray-200">
-                                                                    {methodTranslations[p.payment_method] || p.payment_method}
+                                                                    {paymentMethodLabels[p.payment_method] ?? p.payment_method}
                                                                 </span>
                                                                 <button
                                                                     onClick={() => handleEditClick(p)}
@@ -282,6 +284,13 @@ export default function ChargeDetailDrawer({
                                                                     aria-label="ערוך תשלום"
                                                                 >
                                                                     <Edit2 className="w-3.5 h-3.5" />
+                                                                </button>
+                                                                <button
+                                                                    onClick={() => handleDownloadReceipt(p.id)}
+                                                                    className="p-1.5 text-gray-400 hover:text-apro-navy hover:bg-blue-50 rounded-lg transition-colors border border-transparent hover:border-blue-100"
+                                                                    aria-label="הורד קבלה"
+                                                                >
+                                                                    <Download className="w-3.5 h-3.5" />
                                                                 </button>
                                                             </div>
                                                         </div>
@@ -368,6 +377,23 @@ export default function ChargeDetailDrawer({
                         {/* Footer Actions */}
                         <div className="p-6 border-t border-gray-100 bg-white">
                             {!isFormMode ? (
+                                lastNewPaymentId ? (
+                                    <div className="flex gap-3">
+                                        <button
+                                            onClick={() => handleDownloadReceipt(lastNewPaymentId)}
+                                            className="flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-xl font-bold transition-all bg-apro-green text-white hover:bg-green-600 shadow-sm"
+                                        >
+                                            <Download className="w-4 h-4" />
+                                            הורד קבלה
+                                        </button>
+                                        <button
+                                            onClick={() => { setLastNewPaymentId(null); onClose(); }}
+                                            className="flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-xl font-bold transition-all bg-white border border-gray-200 text-gray-600 hover:bg-gray-50 shadow-sm"
+                                        >
+                                            סגור
+                                        </button>
+                                    </div>
+                                ) : (
                                 <div className="flex gap-3">
                                     <button
                                         onClick={() => setIsFormMode(true)}
@@ -386,6 +412,7 @@ export default function ChargeDetailDrawer({
                                         </button>
                                     )}
                                 </div>
+                                )
                             ) : (
                                 <div className="flex gap-3">
                                     <button
