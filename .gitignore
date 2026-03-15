@@ -47,3 +47,4 @@ next-env.d.ts
 # Local MCP / IDE tooling
 .mcp.json
 .playwright-mcp/
+.gstack/

@@ -4,10 +4,21 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-## [0.1.3] - 2026-03-15
+## [0.1.4] - 2026-03-15
+
+### Added
+- **Auto-generate charges on building onboarding**: When a building is set up via the onboarding wizard, charges for the next 12 months are automatically created for every unit that has both `monthly_amount` and `billing_day` configured. Uses a single `generate_series` SQL query per unit with `ON CONFLICT DO NOTHING` for idempotency.
+- **`effectiveFrom` on payment config update**: When a per-unit or bulk payment config is changed post-onboarding, a month picker ("החל מחודש") lets the manager choose the effective month. Pending charges from that month onwards are deleted and regenerated with the new amount and billing day.
+- **Charge generation on first-time bulk config**: When `PaymentConfigBulkEditor` saves config for units that had no prior config, charges are auto-generated for the next 12 months.
+- **`lib/charges/generateForwardCharges.ts`**: New pure utility — `getForwardMonths()` (unit-tested, 8 tests) and `generateForwardCharges()` DB helper shared across all three config entry points.
 
 ### Changed
 - **Login page redesign**: Replaced the `Building2` placeholder icon and tab switcher with the brand logo image (`/logo.png`). Removed the magic-link option — password is now the only login method. Added a show/hide password toggle and auto-focus on the email field.
+
+### Removed
+- **Manual charge generation**: Removed "Generate Charges" button (`GenerateChargesWrapper`), the `GenerateChargesModal`, and the generation log page (`/dashboard/payments/log`). Charges are now always auto-generated; no manual trigger needed.
+- **Charge generation API endpoints**: Deleted `POST /api/v1/buildings/[id]/generate-charges`, `POST /api/v1/charges/generate`, and `GET /api/v1/charges/generation-log`.
+- **`charge_generation_log` table**: Dropped via migration `0009_drop_charge_generation_log`. The `generate_charges_for_month` Postgres function is also removed.
 
 ## [0.1.2] - 2026-03-15
 
