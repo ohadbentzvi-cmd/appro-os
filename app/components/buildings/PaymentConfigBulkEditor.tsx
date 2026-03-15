@@ -24,6 +24,13 @@ export default function PaymentConfigBulkEditor({ buildingId }: { buildingId: st
     const [bulkAmount, setBulkAmount] = useState('');
     const [bulkBillingDay, setBulkBillingDay] = useState('');
 
+    const getNextMonthStr = () => {
+        const d = new Date();
+        d.setMonth(d.getMonth() + 1);
+        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+    };
+    const [effectiveFrom, setEffectiveFrom] = useState(getNextMonthStr);
+
     const fetchConfigs = useCallback(async () => {
         try {
             setLoading(true);
@@ -71,6 +78,14 @@ export default function PaymentConfigBulkEditor({ buildingId }: { buildingId: st
         r.draftBillingDay !== r.savedBillingDay
     );
 
+    const dirtyRows = rows.filter(r =>
+        r.draftMonthlyAmountAgorot !== r.savedMonthlyAmountAgorot ||
+        r.draftBillingDay !== r.savedBillingDay
+    ).filter(r => r.draftMonthlyAmountAgorot != null && r.draftBillingDay != null);
+
+    // True when at least one dirty row is updating an existing config (not first-time)
+    const hasExistingUpdates = dirtyRows.some(r => r.savedMonthlyAmountAgorot != null);
+
     // Validation: a row is invalid if it has one field but not both
     const rowErrors: Record<string, string> = {};
     for (const r of rows) {
@@ -83,27 +98,26 @@ export default function PaymentConfigBulkEditor({ buildingId }: { buildingId: st
 
     const handleSave = async () => {
         if (!isDirty || hasErrors) return;
-        const dirtyRows = rows.filter(r =>
-            r.draftMonthlyAmountAgorot !== r.savedMonthlyAmountAgorot ||
-            r.draftBillingDay !== r.savedBillingDay
-        ).filter(r => r.draftMonthlyAmountAgorot != null && r.draftBillingDay != null);
-
         if (dirtyRows.length === 0) return;
 
         try {
             setSaving(true);
             setSaveError(null);
             setSaveSuccess(false);
+            const body: Record<string, unknown> = {
+                units: dirtyRows.map(r => ({
+                    unitId: r.unitId,
+                    monthlyAmountAgorot: r.draftMonthlyAmountAgorot!,
+                    billingDay: r.draftBillingDay!,
+                })),
+            };
+            if (hasExistingUpdates) {
+                body.effectiveFrom = `${effectiveFrom}-01`;
+            }
             const res = await fetch(`/api/v1/buildings/${buildingId}/payment-configs`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    units: dirtyRows.map(r => ({
-                        unitId: r.unitId,
-                        monthlyAmountAgorot: r.draftMonthlyAmountAgorot!,
-                        billingDay: r.draftBillingDay!,
-                    })),
-                }),
+                body: JSON.stringify(body),
             });
             const json = await res.json();
             if (!res.ok) throw new Error(json.error || 'שגיאה בשמירת הנתונים');
@@ -299,19 +313,33 @@ export default function PaymentConfigBulkEditor({ buildingId }: { buildingId: st
             </div>
 
             {/* Footer */}
-            <div className="flex items-center justify-between gap-4 pt-2">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pt-2">
                 <div>
                     {saveError && <p className="text-red-600 text-sm font-medium">{saveError}</p>}
                     {saveSuccess && <p className="text-apro-green text-sm font-medium">השינויים נשמרו בהצלחה</p>}
                 </div>
-                <button
-                    onClick={handleSave}
-                    disabled={!isDirty || hasErrors || saving}
-                    className="flex items-center gap-2 px-6 py-2.5 bg-apro-green text-white font-bold rounded-xl hover:bg-emerald-600 transition-colors disabled:bg-gray-200 disabled:text-gray-400 disabled:cursor-not-allowed shadow-sm"
-                >
-                    {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-                    שמור שינויים
-                </button>
+                <div className="flex flex-col md:flex-row md:items-center gap-3">
+                    {hasExistingUpdates && (
+                        <div className="flex items-center gap-2">
+                            <label className="text-sm font-semibold text-gray-700 whitespace-nowrap">החל מחודש</label>
+                            <input
+                                type="month"
+                                min={getNextMonthStr()}
+                                value={effectiveFrom}
+                                onChange={e => setEffectiveFrom(e.target.value)}
+                                className="bg-gray-50 border border-gray-200 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-apro-green/50 focus:border-apro-green transition-all"
+                            />
+                        </div>
+                    )}
+                    <button
+                        onClick={handleSave}
+                        disabled={!isDirty || hasErrors || saving}
+                        className="flex items-center gap-2 px-6 py-2.5 bg-apro-green text-white font-bold rounded-xl hover:bg-emerald-600 transition-colors disabled:bg-gray-200 disabled:text-gray-400 disabled:cursor-not-allowed shadow-sm"
+                    >
+                        {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                        שמור שינויים
+                    </button>
+                </div>
             </div>
         </div>
     );

@@ -72,11 +72,10 @@ export const updateUnitRoleSchema = z.object({
 export const paymentConfigSchema = z.object({
     monthlyAmount: z.number().int().positive().max(1000000), // in agorot
     billingDay: z.number().int().min(1).max(28),
+    // Present when updating an existing config. Pending charges >= this month
+    // are deleted and regenerated with the new amount/billing_day.
+    effectiveFrom: z.string().regex(/^\d{4}-\d{2}-01$/, 'Must be YYYY-MM-01 format').optional(),
 })
-
-export const generateChargesSchema = z.object({
-    period_month: z.string().regex(/^\d{4}-\d{2}-01$/, "Must be YYYY-MM-01 format")
-});
 
 export const paymentSchema = z.object({
     amount: z.number().int().min(1),

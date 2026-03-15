@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { paymentConfigSchema, generateChargesSchema, paymentSchema } from '@/lib/api/schemas';
+import { paymentConfigSchema, paymentSchema } from '@/lib/api/schemas';
 
 describe('Zod Schema Validation', () => {
 
@@ -26,23 +26,6 @@ describe('Zod Schema Validation', () => {
 
         it('should fail when billingDay is out of range', () => {
             const result = paymentConfigSchema.safeParse({ monthlyAmount: 100000, billingDay: 29 });
-            expect(result.success).toBe(false);
-        });
-    });
-
-    describe('charges/generate (generateChargesSchema)', () => {
-        it('should pass with valid period_month as first of month', () => {
-            const result = generateChargesSchema.safeParse({ period_month: '2025-02-01' });
-            expect(result.success).toBe(true);
-        });
-
-        it('should fail when period_month is a mid-month date', () => {
-            const result = generateChargesSchema.safeParse({ period_month: '2025-02-15' });
-            expect(result.success).toBe(false);
-        });
-
-        it('should fail when period_month is missing', () => {
-            const result = generateChargesSchema.safeParse({});
             expect(result.success).toBe(false);
         });
     });
