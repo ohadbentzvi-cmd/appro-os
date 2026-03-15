@@ -104,6 +104,7 @@ export async function PATCH(
         if (data.email !== undefined) updateData.email = data.email
         if (data.phone !== undefined) updateData.phone = data.phone
         if (data.whatsappName !== undefined) updateData.whatsappName = data.whatsappName
+        if (data.availableOnWhatsapp !== undefined) updateData.availableOnWhatsapp = data.availableOnWhatsapp
 
         if (Object.keys(updateData).length === 0) {
             const [p] = await db.select().from(people).where(and(eq(people.id, id), eq(people.tenantId, tenantId)))

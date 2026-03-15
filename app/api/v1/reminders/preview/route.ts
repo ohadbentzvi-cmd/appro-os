@@ -8,6 +8,7 @@ import { errorResponse, successResponse } from '@/lib/api/response';
 import { reminderPreviewSchema } from '@/lib/api/schemas';
 import { normalizeIsraeliPhone } from '@/lib/reminders/phone';
 import { getBlockedPersonIds } from '@/lib/reminders/cooldown';
+import { getPreviewBlockReason } from '@/lib/reminders/block-reason';
 import { resolveContentVariables, type ResolvedVarsContext } from '@/lib/reminders/templates';
 
 export async function POST(req: NextRequest) {
@@ -40,7 +41,9 @@ export async function POST(req: NextRequest) {
                 amountDue: charges.amountDue,
                 dueDate: charges.dueDate,
                 personId: people.id,
+                fullName: people.fullName,
                 whatsappName: people.whatsappName,
+                availableOnWhatsapp: people.availableOnWhatsapp,
                 phone: people.phone,
             })
             .from(charges)
@@ -103,6 +106,7 @@ export async function POST(req: NextRequest) {
                     amountDue: null,
                     dueDate: null,
                     recipientPersonId: null,
+                    recipientFullName: null,
                     recipientName: null,
                     recipientPhone: null,
                     blockReason: 'charge_not_found' as const,
@@ -121,103 +125,34 @@ export async function POST(req: NextRequest) {
                 dueDate: row.dueDate,
             };
 
-            // Guard: no fee payer assigned at all
-            if (!row.personId) {
-                return {
-                    chargeId,
-                    unitIdentifier: row.unitNumber,
-                    buildingAddress: row.buildingAddress,
-                    buildingId: row.buildingId,
-                    ...chargeFields,
-                    recipientPersonId: null,
-                    recipientName: null,
-                    recipientPhone: null,
-                    blockReason: 'no_fee_payer' as const,
-                    cooldownSince: null,
-                    lastReminder,
-                    isDuplicate: false,
-                };
-            }
+            const blockReason = getPreviewBlockReason(row, blockedPersonIds);
+            const normalizedPhone = row.phone ? normalizeIsraeliPhone(row.phone) : null;
 
-            // Guard: missing whatsapp name
-            if (!row.whatsappName) {
+            if (blockReason !== null) {
+                const cooldownSince = blockReason === 'cooldown'
+                    ? (lastReminderRows.find(r => r.chargeId === chargeId)?.sentAt?.toISOString() ?? null)
+                    : null;
                 return {
                     chargeId,
                     unitIdentifier: row.unitNumber,
                     buildingAddress: row.buildingAddress,
                     buildingId: row.buildingId,
                     ...chargeFields,
-                    recipientPersonId: row.personId,
-                    recipientName: null,
-                    recipientPhone: row.phone ?? null,
-                    blockReason: 'no_whatsapp_name' as const,
-                    cooldownSince: null,
-                    lastReminder,
-                    isDuplicate: false,
-                };
-            }
-
-            // Guard: missing phone
-            if (!row.phone) {
-                return {
-                    chargeId,
-                    unitIdentifier: row.unitNumber,
-                    buildingAddress: row.buildingAddress,
-                    buildingId: row.buildingId,
-                    ...chargeFields,
-                    recipientPersonId: row.personId,
-                    recipientName: row.whatsappName,
-                    recipientPhone: null,
-                    blockReason: 'no_phone' as const,
-                    cooldownSince: null,
-                    lastReminder,
-                    isDuplicate: false,
-                };
-            }
-
-            // Guard: phone can't be normalized
-            const normalizedPhone = normalizeIsraeliPhone(row.phone);
-            if (!normalizedPhone) {
-                return {
-                    chargeId,
-                    unitIdentifier: row.unitNumber,
-                    buildingAddress: row.buildingAddress,
-                    buildingId: row.buildingId,
-                    ...chargeFields,
-                    recipientPersonId: row.personId,
-                    recipientName: row.whatsappName,
-                    recipientPhone: row.phone,
-                    blockReason: 'invalid_phone' as const,
-                    cooldownSince: null,
-                    lastReminder,
-                    isDuplicate: false,
-                };
-            }
-
-            // Guard: cooldown
-            if (blockedPersonIds.has(row.personId)) {
-                const cooldownLog = lastReminderRows.find(
-                    r => r.chargeId === chargeId
-                );
-                return {
-                    chargeId,
-                    unitIdentifier: row.unitNumber,
-                    buildingAddress: row.buildingAddress,
-                    buildingId: row.buildingId,
-                    ...chargeFields,
-                    recipientPersonId: row.personId,
-                    recipientName: row.whatsappName,
-                    recipientPhone: normalizedPhone,
-                    blockReason: 'cooldown' as const,
-                    cooldownSince: cooldownLog?.sentAt?.toISOString() ?? null,
+                    recipientPersonId: row.personId ?? null,
+                    recipientFullName: row.fullName ?? null,
+                    recipientName: row.whatsappName ?? null,
+                    recipientPhone: normalizedPhone ?? row.phone ?? null,
+                    blockReason,
+                    cooldownSince,
                     lastReminder,
                     isDuplicate: false,
                 };
             }
 
             // Deduplication: informational, not a block
-            const isDuplicate = seenPersonIds.has(row.personId);
-            seenPersonIds.add(row.personId);
+            // row.personId is non-null here — getPreviewBlockReason returns no_fee_payer when null
+            const isDuplicate = seenPersonIds.has(row.personId!);
+            seenPersonIds.add(row.personId!);
 
             return {
                 chargeId,
@@ -226,6 +161,7 @@ export async function POST(req: NextRequest) {
                 buildingId: row.buildingId,
                 ...chargeFields,
                 recipientPersonId: row.personId,
+                recipientFullName: row.fullName ?? null,
                 recipientName: row.whatsappName,
                 recipientPhone: normalizedPhone,
                 blockReason: null,

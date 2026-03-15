@@ -13,6 +13,7 @@ export interface PreviewItem {
     amountDue: number | null;
     dueDate: string | null;
     recipientPersonId: string | null;
+    recipientFullName: string | null;
     recipientName: string | null;
     recipientPhone: string | null;
     blockReason: string | null;

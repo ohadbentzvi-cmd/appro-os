@@ -48,6 +48,10 @@ export default function PersonDetail() {
     const [whatsappSaving, setWhatsappSaving] = useState(false);
     const [whatsappError, setWhatsappError] = useState<string | null>(null);
 
+    // Toggle state for available_on_whatsapp
+    const [whatsappAvailableToggling, setWhatsappAvailableToggling] = useState(false);
+    const [whatsappAvailableError, setWhatsappAvailableError] = useState<string | null>(null);
+
     const fetchPersonDetail = async () => {
         try {
             setLoading(true);
@@ -87,6 +91,7 @@ export default function PersonDetail() {
                 email: data.email,
                 phone: data.phone,
                 whatsapp_name: data.whatsappName ?? null,
+                available_on_whatsapp: data.availableOnWhatsapp ?? true,
                 created_at: data.createdAt,
                 unit_roles: mappedRoles
             };
@@ -123,6 +128,26 @@ export default function PersonDetail() {
             setWhatsappError('שגיאה בשמירה, נסה שוב');
         } finally {
             setWhatsappSaving(false);
+        }
+    };
+
+    const handleWhatsappAvailableToggle = async () => {
+        if (!person || whatsappAvailableToggling) return;
+        const newValue = !person.available_on_whatsapp;
+        setWhatsappAvailableToggling(true);
+        setWhatsappAvailableError(null);
+        try {
+            const res = await fetch(`/api/v1/people/${id}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ availableOnWhatsapp: newValue }),
+            });
+            if (!res.ok) throw new Error('שגיאה בשמירה');
+            setPerson(prev => prev ? { ...prev, available_on_whatsapp: newValue } : prev);
+        } catch {
+            setWhatsappAvailableError('שגיאה בשמירה, נסה שוב');
+        } finally {
+            setWhatsappAvailableToggling(false);
         }
     };
 
@@ -214,6 +239,32 @@ export default function PersonDetail() {
                         <div className="w-full bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 text-gray-700 font-bold flex justify-end" dir="ltr">
                             {person.phone || '—'}
                         </div>
+                    </div>
+                    <div>
+                        <label className="flex items-center gap-2 text-sm font-semibold text-gray-500 mb-2">
+                            <MessageCircle className="w-4 h-4" /> זמינות וואטסאפ
+                        </label>
+                        <p className="text-xs text-gray-400 mb-2">האם ניתן לשלוח תזכורות לדייר בוואטסאפ?</p>
+                        <button
+                            onClick={handleWhatsappAvailableToggle}
+                            disabled={whatsappAvailableToggling}
+                            className={`flex items-center gap-3 w-full px-4 py-3 rounded-xl border font-bold text-sm transition-colors disabled:opacity-50 ${
+                                person.available_on_whatsapp
+                                    ? 'bg-green-50 border-green-200 text-green-700 hover:bg-green-100'
+                                    : 'bg-gray-50 border-gray-200 text-gray-500 hover:bg-gray-100'
+                            }`}
+                        >
+                            {whatsappAvailableToggling
+                                ? <Loader2 className="w-4 h-4 animate-spin" />
+                                : <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${person.available_on_whatsapp ? 'border-green-500 bg-green-500' : 'border-gray-300 bg-white'}`}>
+                                    {person.available_on_whatsapp && <Check className="w-2.5 h-2.5 text-white" />}
+                                  </div>
+                            }
+                            {person.available_on_whatsapp ? 'זמין בוואטסאפ' : 'לא זמין בוואטסאפ'}
+                        </button>
+                        {whatsappAvailableError && (
+                            <p className="text-red-500 text-xs font-medium mt-1">{whatsappAvailableError}</p>
+                        )}
                     </div>
                     <div>
                         <label className="flex items-center gap-2 text-sm font-semibold text-gray-500 mb-2">

@@ -21,6 +21,7 @@ export const createPersonSchema = z.object({
     email: z.string().email().nullable().optional(),
     phone: z.string().optional(),
     whatsappName: z.string().optional(),
+    availableOnWhatsapp: z.boolean().optional(),
 })
 
 export const updatePersonSchema = createPersonSchema.partial()
