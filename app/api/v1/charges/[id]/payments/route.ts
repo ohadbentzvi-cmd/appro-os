@@ -152,3 +152,55 @@ export async function POST(
         return NextResponse.json({ data: null, error: { message: error.message || 'Internal server error' }, meta: null }, { status: 500 });
     }
 }
+
+export async function DELETE(
+    req: NextRequest,
+    { params }: { params: Promise<{ id: string }> }
+) {
+    try {
+        const { tenantId: tenant_id } = await getServerUser();
+
+        if (!tenant_id) {
+            return NextResponse.json({ data: null, error: { message: 'Unauthorized' }, meta: null }, { status: 401 });
+        }
+
+        const resolvedParams = await params;
+        const chargeId = resolvedParams.id;
+
+        // Verify charge belongs to tenant
+        const [charge] = await db.select().from(charges).where(and(eq(charges.id, chargeId), eq(charges.tenantId, tenant_id)));
+        if (!charge) {
+            return NextResponse.json({ data: null, error: { message: 'Charge not found' }, meta: null }, { status: 404 });
+        }
+
+        // Fetch payments before deleting — audit log
+        const existingPayments = await db.select({
+            id: payments.id,
+            amount: payments.amount,
+            paymentMethod: payments.paymentMethod,
+            paidAt: payments.paidAt,
+            notes: payments.notes,
+        })
+            .from(payments)
+            .where(and(eq(payments.chargeId, chargeId), eq(payments.tenantId, tenant_id)));
+
+        if (existingPayments.length > 0) {
+            console.log(`[revert-charge] Deleting ${existingPayments.length} payment(s) for charge ${chargeId}:`, JSON.stringify(existingPayments));
+
+            await db.delete(payments).where(
+                and(eq(payments.chargeId, chargeId), eq(payments.tenantId, tenant_id))
+            );
+        }
+
+        return NextResponse.json({
+            data: { chargeId, deletedCount: existingPayments.length },
+            error: null,
+            meta: null,
+        }, { status: 200 });
+
+    } catch (error: any) {
+        console.error('Error reverting charge payments:', error);
+        captureApiError(error, req).catch(() => { });
+        return NextResponse.json({ data: null, error: { message: error.message || 'Internal server error' }, meta: null }, { status: 500 });
+    }
+}
