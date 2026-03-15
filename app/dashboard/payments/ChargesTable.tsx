@@ -457,16 +457,20 @@ export default function ChargesTable({ displayUnits, buildingParam, statusParam,
                         <span className="font-medium text-sm">נבחרו {selectedChargeIds.size} חיובים</span>
                         <div className="w-px h-5 bg-white/20" />
 
-                        {/* Send reminder */}
-                        <button
-                            onClick={() => { setBulkPayConfirming(false); setReminderModalOpen(true); }}
-                            className="flex items-center gap-2 bg-white/10 hover:bg-white/20 text-white font-bold text-sm px-4 py-2 rounded-xl transition-colors"
-                        >
-                            <Send className="w-4 h-4" />
-                            שלח תזכורת
-                        </button>
+                        {/* Send reminder — hidden during pay confirmation */}
+                        {!bulkPayConfirming && (
+                            <>
+                                <button
+                                    onClick={() => setReminderModalOpen(true)}
+                                    className="flex items-center gap-2 bg-white/10 hover:bg-white/20 text-white font-bold text-sm px-4 py-2 rounded-xl transition-colors"
+                                >
+                                    <Send className="w-4 h-4" />
+                                    שלח תזכורת
+                                </button>
 
-                        <div className="w-px h-5 bg-white/20" />
+                                <div className="w-px h-5 bg-white/20" />
+                            </>
+                        )}
 
                         {/* Mark as paid — inline confirm */}
                         {bulkPayConfirming ? (
@@ -512,9 +516,10 @@ export default function ChargesTable({ displayUnits, buildingParam, statusParam,
                         <div className="w-px h-5 bg-white/20" />
                         <button
                             onClick={() => { setSelectedChargeIds(new Set()); setBulkPayConfirming(false); }}
-                            className="text-white/60 hover:text-white transition-colors text-sm font-medium"
+                            className="text-white/60 hover:text-white transition-colors text-lg font-medium leading-none"
+                            title="בטל בחירה"
                         >
-                            בטל
+                            ×
                         </button>
                     </div>
                 </div>

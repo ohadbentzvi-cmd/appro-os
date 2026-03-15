@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { X, Loader2, CreditCard, Calendar, FileText, Edit2, Send, Download } from 'lucide-react';
+import { X, Loader2, CreditCard, Calendar, FileText, Edit2, Send, Download, Undo2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useRouter } from 'next/navigation';
 import ReminderStatusBadge from '@/app/components/reminders/ReminderStatusBadge';
@@ -66,11 +66,17 @@ export default function ChargeDetailDrawer({
     const [editingPaymentId, setEditingPaymentId] = useState<string | null>(null);
     const [lastNewPaymentId, setLastNewPaymentId] = useState<string | null>(null);
 
+    // Revert state
+    const [revertConfirming, setRevertConfirming] = useState(false);
+    const [revertLoading, setRevertLoading] = useState(false);
+
     useEffect(() => {
         if (!isOpen || !chargeId) {
             setIsFormMode(false);
             setEditingPaymentId(null);
             setLastNewPaymentId(null);
+            setRevertConfirming(false);
+            setRevertLoading(false);
             return;
         }
 
@@ -183,6 +189,25 @@ export default function ChargeDetailDrawer({
             URL.revokeObjectURL(url);
         } catch (err: any) {
             alert(err.message || 'שגיאה בהפקת הקבלה');
+        }
+    };
+
+    const handleRevertToPending = async () => {
+        if (!chargeId) return;
+        setRevertLoading(true);
+        try {
+            const res = await fetch(`/api/v1/charges/${chargeId}/payments`, { method: 'DELETE' });
+            const json = await res.json();
+            if (!res.ok) throw new Error(json.error?.message || 'שגיאה בביטול התשלום');
+
+            setPayments([]);
+            setRevertConfirming(false);
+            if (onPaymentSuccess) onPaymentSuccess('pending', 0);
+            router.refresh();
+        } catch (err: any) {
+            alert(err.message);
+        } finally {
+            setRevertLoading(false);
         }
     };
 
@@ -392,6 +417,36 @@ export default function ChargeDetailDrawer({
                                         >
                                             סגור
                                         </button>
+                                    </div>
+                                ) : status === 'paid' ? (
+                                    <div className="flex gap-3">
+                                        {revertConfirming ? (
+                                            <>
+                                                <button
+                                                    onClick={handleRevertToPending}
+                                                    disabled={revertLoading}
+                                                    className="flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-xl font-bold transition-all bg-red-500 text-white hover:bg-red-600 shadow-sm disabled:opacity-50"
+                                                >
+                                                    {revertLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Undo2 className="w-4 h-4" />}
+                                                    {revertLoading ? 'מבטל...' : 'אישור ביטול'}
+                                                </button>
+                                                <button
+                                                    onClick={() => setRevertConfirming(false)}
+                                                    disabled={revertLoading}
+                                                    className="flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-xl font-bold transition-all bg-white border border-gray-200 text-gray-600 hover:bg-gray-50 shadow-sm"
+                                                >
+                                                    חזור
+                                                </button>
+                                            </>
+                                        ) : (
+                                            <button
+                                                onClick={() => setRevertConfirming(true)}
+                                                className="flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-xl font-bold transition-all bg-white border border-gray-200 text-amber-600 hover:bg-amber-50 hover:border-amber-200 shadow-sm"
+                                            >
+                                                <Undo2 className="w-4 h-4" />
+                                                החזר לממתין
+                                            </button>
+                                        )}
                                     </div>
                                 ) : (
                                 <div className="flex gap-3">

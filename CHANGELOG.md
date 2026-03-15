@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [0.1.6] - 2026-03-16
+
+### Added
+- **Revert charge to pending**: Paid charges can now be reverted to pending via a "החזר לממתין" button in the charge detail drawer, which deletes all associated payment records after a two-step confirmation.
+
+### Changed
+- **Bulk pay bar UX**: The "שלח תזכורת" button is now hidden while the pay confirmation flow is active, reducing clutter. The deselect-all "בטל" button is replaced with an "×" icon to avoid appearing as a second cancel button alongside "ביטול".
+
 ## [0.1.5] - 2026-03-16
 
 ### Added
