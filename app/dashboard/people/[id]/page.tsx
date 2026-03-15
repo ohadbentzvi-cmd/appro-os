@@ -50,6 +50,7 @@ export default function PersonDetail() {
 
     // Toggle state for available_on_whatsapp
     const [whatsappAvailableToggling, setWhatsappAvailableToggling] = useState(false);
+    const [whatsappAvailableError, setWhatsappAvailableError] = useState<string | null>(null);
 
     const fetchPersonDetail = async () => {
         try {
@@ -134,6 +135,7 @@ export default function PersonDetail() {
         if (!person || whatsappAvailableToggling) return;
         const newValue = !person.available_on_whatsapp;
         setWhatsappAvailableToggling(true);
+        setWhatsappAvailableError(null);
         try {
             const res = await fetch(`/api/v1/people/${id}`, {
                 method: 'PATCH',
@@ -143,7 +145,7 @@ export default function PersonDetail() {
             if (!res.ok) throw new Error('שגיאה בשמירה');
             setPerson(prev => prev ? { ...prev, available_on_whatsapp: newValue } : prev);
         } catch {
-            // silently ignore — value stays unchanged
+            setWhatsappAvailableError('שגיאה בשמירה, נסה שוב');
         } finally {
             setWhatsappAvailableToggling(false);
         }
@@ -260,6 +262,9 @@ export default function PersonDetail() {
                             }
                             {person.available_on_whatsapp ? 'זמין בוואטסאפ' : 'לא זמין בוואטסאפ'}
                         </button>
+                        {whatsappAvailableError && (
+                            <p className="text-red-500 text-xs font-medium mt-1">{whatsappAvailableError}</p>
+                        )}
                     </div>
                     <div>
                         <label className="flex items-center gap-2 text-sm font-semibold text-gray-500 mb-2">
