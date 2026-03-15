@@ -26,6 +26,7 @@ const files = [
     '004_functions.sql',
     '005_reminder_logs_rls.sql',
     '006_whatsapp_templates_rls.sql',
+    '007_receipt_rls.sql',
     ...(includeSeed ? ['seed_local.sql'] : []),
 ]
 
