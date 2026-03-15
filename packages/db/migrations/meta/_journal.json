@@ -64,6 +64,13 @@
       "when": 1773300000000,
       "tag": "0008_whatsapp_availability",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1773400000000,
+      "tag": "0009_drop_charge_generation_log",
+      "breakpoints": true
     }
   ]
 }

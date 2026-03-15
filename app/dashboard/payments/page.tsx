@@ -6,7 +6,7 @@ import PaymentsSummary from './PaymentsSummary';
 import GlobalFilterBar from './GlobalFilterBar';
 import ChargesTable from './ChargesTable';
 
-import { MoreVertical, History, Loader2, AlertCircle, FilePlus, MessageSquare } from 'lucide-react';
+import { MoreVertical, Loader2, AlertCircle, MessageSquare } from 'lucide-react';
 import Link from 'next/link';
 import { MonthlySnapshot, BuildingSnapshot, filterByBuilding, flattenUnits, filterByStatus } from '../../../lib/payments/utils';
 
@@ -106,13 +106,6 @@ function PaymentsDashboardContent() {
                     {/* Dropdown Menu */}
                     <div className="absolute left-0 mt-2 w-56 bg-white rounded-xl shadow-lg border border-gray-100 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-10 origin-top-left translate-y-2 group-hover:translate-y-0">
                         <Link
-                            href="/dashboard/payments/log"
-                            className="flex items-center gap-2 px-4 py-3 text-sm font-bold text-gray-600 hover:text-apro-navy hover:bg-gray-50 transition-colors first:rounded-t-xl last:rounded-b-xl"
-                        >
-                            <History className="w-4 h-4" />
-                            היסטוריית הפקת חיובים
-                        </Link>
-                        <Link
                             href="/dashboard/payments/reminders"
                             className="flex items-center gap-2 px-4 py-3 text-sm font-bold text-gray-600 hover:text-apro-navy hover:bg-gray-50 transition-colors first:rounded-t-xl last:rounded-b-xl"
                         >
@@ -185,15 +178,8 @@ function PaymentsDashboardContent() {
                     <div className="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center mb-6">
                         <AlertCircle className="w-10 h-10 text-gray-300" />
                     </div>
-                    <h2 className="text-2xl font-bold text-apro-navy mb-2">לא נוצרו חיובים לחודש זה</h2>
-                    <p className="text-gray-500 mb-8 max-w-sm">לא קיימות הגדרות גבייה או שלא הופקו מעולם חיובים בהיסטוריה לתקופה זו.</p>
-                    <Link
-                        href="/dashboard/payments/log"
-                        className="inline-flex items-center gap-2 bg-apro-green text-white px-6 py-3 rounded-xl font-bold hover:bg-green-600 transition-colors shadow-sm"
-                    >
-                        <FilePlus className="w-5 h-5" />
-                        צור חיובים לחודש זה
-                    </Link>
+                    <h2 className="text-2xl font-bold text-apro-navy mb-2">אין חיובים לחודש זה</h2>
+                    <p className="text-gray-500 max-w-sm">חיובים נוצרים אוטומטית בעת הוספת בניין. וודא שהוגדרו סכום וגבייה לכל יחידה.</p>
                 </div>
             )}
         </div>

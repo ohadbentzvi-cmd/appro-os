@@ -1,11 +1,12 @@
 import { NextRequest } from 'next/server'
-import { db, unitPaymentConfig, units } from '@apro/db'
-import { eq, and } from 'drizzle-orm'
+import { db, unitPaymentConfig, units, charges } from '@apro/db'
+import { eq, and, gte } from 'drizzle-orm'
 import { successResponse, errorResponse } from '@/lib/api/response'
 import { getServerUser } from '@/lib/supabase/server'
 import { validateBody } from '@/lib/api/validate'
 import { paymentConfigSchema } from '@/lib/api/schemas'
-import * as Sentry from '@sentry/nextjs';
+import * as Sentry from '@sentry/nextjs'
+import { generateForwardCharges } from '@/lib/charges/generateForwardCharges'
 
 export async function GET(
     req: NextRequest,
@@ -81,22 +82,52 @@ export async function PATCH(
             return errorResponse('Unit not found', 404)
         }
 
-        const [upserted] = await db
-            .insert(unitPaymentConfig)
-            .values({
-                tenantId,
-                unitId,
-                monthlyAmount: data.monthlyAmount,
-                billingDay: data.billingDay,
-            })
-            .onConflictDoUpdate({
-                target: unitPaymentConfig.unitId,
-                set: {
+        // Determine if this is a first-time setup or an update
+        const [existingConfig] = await db
+            .select({ id: unitPaymentConfig.id })
+            .from(unitPaymentConfig)
+            .where(and(eq(unitPaymentConfig.unitId, unitId), eq(unitPaymentConfig.tenantId, tenantId)))
+            .limit(1)
+
+        const isUpdate = !!existingConfig
+        const effectiveFrom = data.effectiveFrom
+
+        const upserted = await db.transaction(async (tx) => {
+            const [saved] = await tx
+                .insert(unitPaymentConfig)
+                .values({
+                    tenantId,
+                    unitId,
                     monthlyAmount: data.monthlyAmount,
                     billingDay: data.billingDay,
-                },
-            })
-            .returning()
+                })
+                .onConflictDoUpdate({
+                    target: unitPaymentConfig.unitId,
+                    set: {
+                        monthlyAmount: data.monthlyAmount,
+                        billingDay: data.billingDay,
+                    },
+                })
+                .returning()
+
+            if (isUpdate && effectiveFrom) {
+                // Delete pending charges from effectiveFrom onwards and regenerate
+                await tx
+                    .delete(charges)
+                    .where(and(
+                        eq(charges.unitId, unitId),
+                        eq(charges.tenantId, tenantId),
+                        eq(charges.status, 'pending'),
+                        gte(charges.periodMonth, effectiveFrom),
+                    ))
+                await generateForwardCharges(tx, tenantId, unitId, new Date(effectiveFrom))
+            } else if (!isUpdate) {
+                // First-time setup: generate from current month forward
+                await generateForwardCharges(tx, tenantId, unitId)
+            }
+
+            return saved
+        })
 
         return successResponse(upserted)
     } catch (e) {

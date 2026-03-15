@@ -7,6 +7,7 @@ import { getServerUser } from '@/lib/supabase/server';
 import { captureApiError } from '@/lib/api/sentry';
 import { validateBody } from '@/lib/api/validate';
 import { buildingOnboardSchema } from '@/lib/api/schemas/buildingOnboard';
+import { generateForwardCharges } from '@/lib/charges/generateForwardCharges';
 
 export type PhoneConflict = {
     phone: string;
@@ -199,6 +200,11 @@ export async function POST(req: NextRequest) {
                         billingDay: unit.billing_day ?? null,
                         createdBy: null,
                     });
+
+                    // 5. Generate 12 months of charges for this unit if fully configured
+                    if (unit.billing_day) {
+                        await generateForwardCharges(tx, tenantId, unitId);
+                    }
                 }
             }
 

@@ -1,10 +1,11 @@
 import { NextRequest } from 'next/server'
-import { db, unitPaymentConfig, units } from '@apro/db'
-import { eq, and } from 'drizzle-orm'
+import { db, unitPaymentConfig, units, charges } from '@apro/db'
+import { eq, and, gte, inArray } from 'drizzle-orm'
 import { z } from 'zod'
 import { successResponse, errorResponse } from '@/lib/api/response'
 import { getServerUser } from '@/lib/supabase/server'
 import { validateBody } from '@/lib/api/validate'
+import { generateForwardCharges } from '@/lib/charges/generateForwardCharges'
 
 const bulkUpdateSchema = z.object({
     units: z.array(z.object({
@@ -12,6 +13,7 @@ const bulkUpdateSchema = z.object({
         monthlyAmountAgorot: z.number().int().min(1),
         billingDay: z.number().int().min(1).max(28),
     })).min(1),
+    effectiveFrom: z.string().regex(/^\d{4}-\d{2}-01$/).optional(),
 })
 
 export async function GET(
@@ -78,7 +80,7 @@ export async function PATCH(
         const valid = await validateBody(req, bulkUpdateSchema)
         if ('error' in valid) return valid.error
 
-        const { units: unitUpdates } = valid.data
+        const { units: unitUpdates, effectiveFrom } = valid.data
 
         // Verify all submitted unitIds belong to this building + tenant
         const buildingUnits = await db
@@ -92,6 +94,16 @@ export async function PATCH(
                 return errorResponse(`Unit ${u.unitId} not found in this building`, 400)
             }
         }
+
+        // Determine which units already have a config (update vs first-time)
+        const existingConfigs = await db
+            .select({ unitId: unitPaymentConfig.unitId })
+            .from(unitPaymentConfig)
+            .where(and(
+                eq(unitPaymentConfig.tenantId, tenantId),
+                inArray(unitPaymentConfig.unitId, unitUpdates.map(u => u.unitId)),
+            ))
+        const existingUnitIds = new Set(existingConfigs.map(c => c.unitId))
 
         await db.transaction(async (tx) => {
             for (const u of unitUpdates) {
@@ -110,6 +122,21 @@ export async function PATCH(
                             billingDay: u.billingDay,
                         },
                     })
+
+                const isUpdate = existingUnitIds.has(u.unitId)
+                if (isUpdate && effectiveFrom) {
+                    await tx
+                        .delete(charges)
+                        .where(and(
+                            eq(charges.unitId, u.unitId),
+                            eq(charges.tenantId, tenantId),
+                            eq(charges.status, 'pending'),
+                            gte(charges.periodMonth, effectiveFrom),
+                        ))
+                    await generateForwardCharges(tx, tenantId, u.unitId, new Date(effectiveFrom))
+                } else if (!isUpdate) {
+                    await generateForwardCharges(tx, tenantId, u.unitId)
+                }
             }
         })
 

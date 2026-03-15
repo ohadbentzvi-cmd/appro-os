@@ -16,9 +16,16 @@ interface PaymentConfigData {
 const formSchema = z.object({
     monthlyAmountILS: z.number().int().positive().max(10000),
     billingDay: z.number().int().min(1).max(28),
+    effectiveFrom: z.string().optional(), // YYYY-MM (month input value)
 });
 
 type FormValues = z.infer<typeof formSchema>;
+
+function getNextMonthStr() {
+    const d = new Date();
+    d.setMonth(d.getMonth() + 1);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+}
 
 export default function PaymentConfigSection({ buildingId, unitId }: { buildingId: string, unitId: string }) {
     const [config, setConfig] = useState<PaymentConfigData | null>(null);
@@ -54,6 +61,7 @@ export default function PaymentConfigSection({ buildingId, unitId }: { buildingI
         if (config) {
             setValue('monthlyAmountILS', config.monthlyAmount / 100);
             if (config.billingDay) setValue('billingDay', config.billingDay);
+            setValue('effectiveFrom', getNextMonthStr());
         } else {
             reset();
         }
@@ -71,10 +79,15 @@ export default function PaymentConfigSection({ buildingId, unitId }: { buildingI
             setIsSubmitting(true);
             setSubmitError(null);
 
-            const payload = {
+            const payload: Record<string, unknown> = {
                 monthlyAmount: data.monthlyAmountILS * 100,
                 billingDay: data.billingDay,
             };
+            // When updating an existing config, send effectiveFrom so the backend
+            // can delete and regenerate pending charges from that month onwards.
+            if (config && data.effectiveFrom) {
+                payload.effectiveFrom = `${data.effectiveFrom}-01`;
+            }
 
             const res = await fetch(`/api/v1/buildings/${buildingId}/units/${unitId}/payment-config`, {
                 method: 'PATCH',
@@ -137,6 +150,23 @@ export default function PaymentConfigSection({ buildingId, unitId }: { buildingI
                             {errors.billingDay && <p className="text-red-500 text-sm mt-1">{errors.billingDay.message}</p>}
                         </div>
                     </div>
+
+                    {config && (
+                        <div>
+                            <label className="block text-sm font-semibold text-gray-700 mb-1">
+                                החל מחודש
+                            </label>
+                            <input
+                                type="month"
+                                min={getNextMonthStr()}
+                                {...register('effectiveFrom')}
+                                className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-apro-green focus:border-apro-green outline-none transition-colors"
+                            />
+                            <p className="text-xs text-gray-400 mt-1">
+                                חיובים עתידיים ממתינים יוחלפו בסכום החדש החל מחודש זה
+                            </p>
+                        </div>
+                    )}
 
                     {submitError && (
                         <div className="text-red-600 bg-red-50 p-3 rounded-lg text-sm border border-red-100">

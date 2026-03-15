@@ -5,7 +5,6 @@ import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Building2, ChevronLeft, Loader2, AlertCircle, ChevronRight, Info, Grid, MapPin, Users, Pencil, SlidersHorizontal } from 'lucide-react';
 import { motion } from 'motion/react';
-import GenerateChargesWrapper from '@/app/dashboard/payments/GenerateChargesWrapper';
 import EditBuildingModal from '@/app/components/buildings/EditBuildingModal';
 import PaymentConfigBulkEditor from '@/app/components/buildings/PaymentConfigBulkEditor';
 
@@ -380,9 +379,6 @@ export default function BuildingDetail() {
                             initial={{ opacity: 0, y: 10 }}
                             animate={{ opacity: 1, y: 0 }}
                         >
-                            <div className="flex justify-end mb-4">
-                                <GenerateChargesWrapper buildingId={id} />
-                            </div>
                             <PaymentConfigBulkEditor buildingId={id} />
                         </motion.div>
                     )}
