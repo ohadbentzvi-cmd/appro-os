@@ -1,222 +1,140 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import Image from 'next/image'
+import { Eye, EyeOff } from 'lucide-react'
 import { createSupabaseBrowserClient } from '@/lib/supabase/client'
-import { Building2 } from 'lucide-react'
 
 export default function LoginPage() {
-    const [activeTab, setActiveTab] = useState<'magic-link' | 'password'>('magic-link')
-
-    const [magicEmail, setMagicEmail] = useState('')
-    const [magicLoading, setMagicLoading] = useState(false)
-    const [magicSuccess, setMagicSuccess] = useState(false)
-    const [magicError, setMagicError] = useState('')
-
-    const [passEmail, setPassEmail] = useState('')
+    const [email, setEmail] = useState('')
     const [password, setPassword] = useState('')
-    const [passLoading, setPassLoading] = useState(false)
-    const [passError, setPassError] = useState('')
+    const [showPassword, setShowPassword] = useState(false)
+    const [loading, setLoading] = useState(false)
+    const [error, setError] = useState('')
     const [resetSent, setResetSent] = useState(false)
     const [resetLoading, setResetLoading] = useState(false)
 
+    const emailRef = useRef<HTMLInputElement>(null)
     const router = useRouter()
     const supabase = createSupabaseBrowserClient()
 
-    const handleMagicLinkSubmit = async (e: React.FormEvent) => {
-        e.preventDefault()
-        if (!magicEmail) return
-
-        setMagicLoading(true)
-        setMagicError('')
-        setMagicSuccess(false)
-
-        try {
-            const { error } = await supabase.auth.signInWithOtp({
-                email: magicEmail,
-                options: {
-                    emailRedirectTo: `${window.location.origin}/auth/callback`,
-                },
-            })
-
-            if (error) {
-                setMagicError('אירעה שגיאה, נסה שוב')
-            } else {
-                setMagicSuccess(true)
-            }
-        } catch {
-            setMagicError('אירעה שגיאה, נסה שוב')
-        } finally {
-            setMagicLoading(false)
-        }
-    }
+    useEffect(() => {
+        emailRef.current?.focus()
+    }, [])
 
     const handleForgotPassword = async () => {
-        if (!passEmail) {
-            setPassError('הזן אימייל כדי לאפס סיסמה')
+        if (!email) {
+            setError('הזן אימייל כדי לאפס סיסמה')
             return
         }
         setResetLoading(true)
-        setPassError('')
-        const { error } = await supabase.auth.resetPasswordForEmail(passEmail, {
+        setError('')
+        const { error } = await supabase.auth.resetPasswordForEmail(email, {
             redirectTo: `${window.location.origin}/auth/callback?type=recovery`,
         })
         setResetLoading(false)
         if (error) {
-            setPassError('אירעה שגיאה, נסה שוב')
+            setError('אירעה שגיאה, נסה שוב')
         } else {
             setResetSent(true)
         }
     }
 
-    const handlePasswordSubmit = async (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
-        if (!passEmail || !password) return
+        if (!email || !password) return
 
-        setPassLoading(true)
-        setPassError('')
+        setLoading(true)
+        setError('')
 
         try {
-            const { error } = await supabase.auth.signInWithPassword({
-                email: passEmail,
-                password: password,
-            })
+            const { error } = await supabase.auth.signInWithPassword({ email, password })
 
             if (error) {
                 if (error.message.includes('Invalid login credentials')) {
-                    setPassError('אימייל או סיסמה שגויים')
+                    setError('אימייל או סיסמה שגויים')
                 } else if (error.message.includes('Email not confirmed')) {
-                    setPassError('האימייל לא אומת, בדוק את תיבת הדואר')
+                    setError('האימייל לא אומת, בדוק את תיבת הדואר')
                 } else {
-                    setPassError('אירעה שגיאה, נסה שוב')
+                    setError('אירעה שגיאה, נסה שוב')
                 }
             } else {
                 router.push('/dashboard/buildings')
             }
         } catch {
-            setPassError('אירעה שגיאה, נסה שוב')
+            setError('אירעה שגיאה, נסה שוב')
         } finally {
-            setPassLoading(false)
+            setLoading(false)
         }
     }
 
     return (
         <div className="min-h-screen flex items-center justify-center bg-[#f8f9fa] p-4 font-sans" dir="rtl">
             <div className="max-w-md w-full p-8 bg-white rounded-2xl shadow-xl border border-gray-100">
-                <div className="text-center mb-8">
-                    <div className="flex justify-center mb-6">
-                        <div className="bg-apro-green p-4 rounded-2xl shadow-lg shadow-apro-green/20">
-                            <Building2 className="w-10 h-10 text-white" />
-                        </div>
-                    </div>
-                    <h1 className="text-3xl font-bold text-apro-navy mb-2 tracking-tight">אפרו נדל"ן</h1>
-                    <p className="text-gray-500">התחבר למערכת</p>
+                <div className="flex justify-center mb-8">
+                    <Image
+                        src="/logo.png"
+                        alt="אפרו נדל״ן"
+                        width={180}
+                        height={56}
+                        priority
+                    />
                 </div>
 
-                <div className="flex bg-gray-100 rounded-xl p-1.5 mb-8">
-                    <button
-                        onClick={() => {
-                            setActiveTab('magic-link')
-                            setPassError('')
-                            setMagicError('')
-                        }}
-                        className={`flex-1 py-2.5 px-4 text-sm rounded-lg transition-all ${activeTab === 'magic-link' ? 'bg-white shadow text-apro-navy font-bold' : 'text-gray-500 hover:text-apro-navy'}`}
-                    >
-                        קישור כניסה
-                    </button>
-                    <button
-                        onClick={() => {
-                            setActiveTab('password')
-                            setPassError('')
-                            setMagicError('')
-                        }}
-                        className={`flex-1 py-2.5 px-4 text-sm rounded-lg transition-all ${activeTab === 'password' ? 'bg-white shadow text-apro-navy font-bold' : 'text-gray-500 hover:text-apro-navy'}`}
-                    >
-                        סיסמה
-                    </button>
-                </div>
-
-                {activeTab === 'magic-link' ? (
-                    <div>
-                        {magicSuccess ? (
-                            <div className="bg-green-50 text-green-700 p-4 rounded-xl text-sm text-center border border-green-200">
-                                קישור כניסה נשלח לאימייל שלך. בדוק את תיבת הדואר.
-                            </div>
-                        ) : (
-                            <form onSubmit={handleMagicLinkSubmit} className="space-y-5">
-                                <div>
-                                    <input
-                                        id="magic-email"
-                                        type="email"
-                                        required
-                                        value={magicEmail}
-                                        onChange={(e) => setMagicEmail(e.target.value)}
-                                        placeholder="הזן את כתובת האימייל שלך"
-                                        className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-apro-green focus:border-apro-green outline-none text-right placeholder-gray-400 transition-all"
-                                    />
-                                    {magicError && <p className="mt-2 text-sm text-red-600 px-1">{magicError}</p>}
-                                </div>
-                                <button
-                                    type="submit"
-                                    disabled={magicLoading}
-                                    className="w-full bg-apro-green text-apro-navy py-3.5 rounded-xl hover:brightness-105 transition-all font-bold disabled:opacity-70 flex justify-center items-center shadow-lg shadow-apro-green/20"
-                                >
-                                    {magicLoading ? 'שולח...' : 'שלח קישור כניסה'}
-                                </button>
-                            </form>
-                        )}
+                {resetSent ? (
+                    <div className="bg-green-50 text-green-700 p-4 rounded-xl text-sm text-center border border-green-200">
+                        קישור לאיפוס סיסמה נשלח לאימייל שלך.
                     </div>
                 ) : (
-                    <div>
-                    {resetSent ? (
-                        <div className="bg-green-50 text-green-700 p-4 rounded-xl text-sm text-center border border-green-200">
-                            קישור לאיפוס סיסמה נשלח לאימייל שלך.
+                    <form onSubmit={handleSubmit} className="space-y-5">
+                        <div>
+                            <input
+                                ref={emailRef}
+                                type="email"
+                                required
+                                value={email}
+                                onChange={(e) => setEmail(e.target.value)}
+                                placeholder="אימייל"
+                                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-apro-green focus:border-apro-green outline-none text-right placeholder-gray-400 transition-all"
+                            />
                         </div>
-                    ) : (
-                        <form onSubmit={handlePasswordSubmit} className="space-y-5">
-                            <div>
-                                <input
-                                    id="pass-email"
-                                    type="email"
-                                    required
-                                    value={passEmail}
-                                    onChange={(e) => setPassEmail(e.target.value)}
-                                    placeholder="הזן את כתובת האימייל שלך"
-                                    className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-apro-green focus:border-apro-green outline-none text-right placeholder-gray-400 transition-all"
-                                />
-                            </div>
-                            <div>
-                                <input
-                                    id="password"
-                                    type="password"
-                                    required
-                                    value={password}
-                                    onChange={(e) => setPassword(e.target.value)}
-                                    placeholder="הזן סיסמה"
-                                    className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-apro-green focus:border-apro-green outline-none text-right placeholder-gray-400 transition-all"
-                                />
-                                {passError && <p className="mt-2 text-sm text-red-600 px-1">{passError}</p>}
-                            </div>
-                            <button
-                                type="submit"
-                                disabled={passLoading}
-                                className="w-full bg-apro-green text-apro-navy py-3.5 rounded-xl hover:brightness-105 transition-all font-bold disabled:opacity-70 flex justify-center items-center shadow-lg shadow-apro-green/20"
-                            >
-                                {passLoading ? 'מתחבר...' : 'כניסה'}
-                            </button>
+                        <div className="relative">
+                            <input
+                                type={showPassword ? 'text' : 'password'}
+                                required
+                                value={password}
+                                onChange={(e) => setPassword(e.target.value)}
+                                placeholder="סיסמה"
+                                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-apro-green focus:border-apro-green outline-none text-right placeholder-gray-400 transition-all pl-12"
+                            />
                             <button
                                 type="button"
-                                onClick={handleForgotPassword}
-                                disabled={resetLoading}
-                                className="w-full text-sm text-gray-500 hover:text-apro-navy transition-colors text-center disabled:opacity-50"
+                                onClick={() => setShowPassword((v) => !v)}
+                                className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-apro-navy transition-colors"
+                                tabIndex={-1}
                             >
-                                {resetLoading ? 'שולח...' : 'שכחתי סיסמה'}
+                                {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                             </button>
-                        </form>
-                    )}
-                    </div>
+                        </div>
+                        {error && <p className="text-sm text-red-600 px-1">{error}</p>}
+                        <button
+                            type="submit"
+                            disabled={loading}
+                            className="w-full bg-apro-green text-apro-navy py-3.5 rounded-xl hover:brightness-105 transition-all font-bold disabled:opacity-70 flex justify-center items-center shadow-lg shadow-apro-green/20"
+                        >
+                            {loading ? 'מתחבר...' : 'כניסה'}
+                        </button>
+                        <button
+                            type="button"
+                            onClick={handleForgotPassword}
+                            disabled={resetLoading}
+                            className="w-full text-sm text-gray-500 hover:text-apro-navy transition-colors text-center disabled:opacity-50"
+                        >
+                            {resetLoading ? 'שולח...' : 'שכחתי סיסמה'}
+                        </button>
+                    </form>
                 )}
-
             </div>
         </div>
     )
