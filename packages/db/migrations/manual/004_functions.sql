@@ -56,60 +56,9 @@ CREATE TRIGGER trg_update_charge_status
     EXECUTE FUNCTION public.update_charge_status_on_payment();
 
 
--- ─── 2. Charge generation function ──────────────────────────────────────────
--- Generates one pending charge per active unit_payment_config for a given
--- tenant and month. Called by the manual API endpoint and by pg_cron.
--- SECURITY DEFINER so it bypasses RLS (runs as function owner, not caller).
+-- ─── 2. Charge generation function (REMOVED) ─────────────────────────────────
+-- Charge generation is now handled by the application layer at onboarding time
+-- and on payment-config updates. The pg_cron / manual-API approach is gone.
+-- Drop the function so it doesn't reference the dropped charge_generation_log table.
+DROP FUNCTION IF EXISTS public.generate_charges_for_month(date, uuid);
 
-CREATE OR REPLACE FUNCTION public.generate_charges_for_month(
-    target_month date,
-    p_tenant_id  uuid
-)
-RETURNS integer
-LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path = public
-AS $$
-DECLARE
-    v_inserted_count integer := 0;
-BEGIN
-    WITH inserted AS (
-        INSERT INTO charges (
-            tenant_id,
-            unit_id,
-            period_month,
-            amount_due,
-            status,
-            due_date
-        )
-        SELECT
-            c.tenant_id,
-            c.unit_id,
-            date_trunc('month', target_month)::date,
-            c.monthly_amount,
-            'pending',
-            (date_trunc('month', target_month) + ((c.billing_day - 1) * interval '1 day'))::date
-        FROM unit_payment_config c
-        JOIN units u ON u.id = c.unit_id
-        WHERE c.tenant_id = p_tenant_id
-          AND c.billing_day IS NOT NULL
-        ON CONFLICT (unit_id, period_month) DO NOTHING
-        RETURNING 1
-    )
-    SELECT COUNT(*) INTO v_inserted_count FROM inserted;
-
-    INSERT INTO charge_generation_log (
-        tenant_id,
-        period_month,
-        triggered_by,
-        charges_created
-    ) VALUES (
-        p_tenant_id,
-        date_trunc('month', target_month)::date,
-        'pg_cron',
-        v_inserted_count
-    );
-
-    RETURN v_inserted_count;
-END;
-$$;
