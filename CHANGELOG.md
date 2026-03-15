@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [0.1.3] - 2026-03-15
+
+### Changed
+- **Login page redesign**: Replaced the `Building2` placeholder icon and tab switcher with the brand logo image (`/logo.png`). Removed the magic-link option — password is now the only login method. Added a show/hide password toggle and auto-focus on the email field.
+
 ## [0.1.2] - 2026-03-15
 
 ### Added
