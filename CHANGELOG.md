@@ -4,6 +4,16 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [0.1.2] - 2026-03-15
+
+### Added
+- **WhatsApp availability flag**: New `available_on_whatsapp` boolean field on the `people` table (default `true`). When set to `false`, the reminder preview returns a `not_on_whatsapp` block reason and the charge is excluded from all bulk/single reminder sends.
+- **Person profile toggle**: Managers can flip the WhatsApp availability flag directly from the person detail page with immediate visual feedback (error message shown if save fails).
+- **Block-reason unit tests**: Extracted `getPreviewBlockReason()` into `lib/reminders/block-reason.ts` with 9 unit tests covering all block paths.
+
+### Changed
+- **Reminder preview refactor**: Replaced the inline 80-line guard chain in the preview route with a single call to `getPreviewBlockReason()`, making the route ~70 lines shorter.
+
 ## [0.1.1] - 2026-03-15
 
 ### Added
