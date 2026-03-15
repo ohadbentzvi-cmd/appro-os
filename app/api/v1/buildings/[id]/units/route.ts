@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server'
 import { db, units, unitRoles } from '@apro/db'
-import { eq, and, sql } from 'drizzle-orm'
+import { eq, and, sql, asc } from 'drizzle-orm'
 import { successResponse, errorResponse } from '@/lib/api/response'
 import { getServerUser } from '@/lib/supabase/server'
 import { validateBody } from '@/lib/api/validate'
@@ -32,32 +32,64 @@ export async function GET(
                 unitNumber: units.unitNumber,
                 floor: units.floor,
                 createdAt: units.createdAt,
-                activeRolesCount: sql<number>`(
-          SELECT count(*)::int 
-          FROM ${unitRoles} 
-          WHERE ${unitRoles.unitId} = "units"."id"
-            AND (${unitRoles.effectiveTo} IS NULL OR ${unitRoles.effectiveTo} >= CURRENT_DATE)
-        )`,
-                activeOccupantName: sql<string | null>`(
-          SELECT p.full_name
-          FROM ${unitRoles} ur
+                ownerName: sql<string | null>`(
+          SELECT p.full_name FROM ${unitRoles} ur
           JOIN people p ON p.id = ur.person_id
-          WHERE ur.unit_id = "units"."id"
+          WHERE ur.unit_id = "units"."id" AND ur.role_type = 'owner'
             AND (ur.effective_to IS NULL OR ur.effective_to >= CURRENT_DATE)
-          ORDER BY ur.created_at DESC
-          LIMIT 1
+          ORDER BY ur.created_at DESC LIMIT 1
         )`,
-                activeRoleType: sql<string | null>`(
-          SELECT role_type
-          FROM ${unitRoles}
-          WHERE unit_id = "units"."id"
-            AND (effective_to IS NULL OR effective_to >= CURRENT_DATE)
-          ORDER BY created_at DESC
-          LIMIT 1
+                ownerPersonId: sql<string | null>`(
+          SELECT ur.person_id::text FROM ${unitRoles} ur
+          WHERE ur.unit_id = "units"."id" AND ur.role_type = 'owner'
+            AND (ur.effective_to IS NULL OR ur.effective_to >= CURRENT_DATE)
+          ORDER BY ur.created_at DESC LIMIT 1
+        )`,
+                ownerPhone: sql<string | null>`(
+          SELECT p.phone FROM ${unitRoles} ur
+          JOIN people p ON p.id = ur.person_id
+          WHERE ur.unit_id = "units"."id" AND ur.role_type = 'owner'
+            AND (ur.effective_to IS NULL OR ur.effective_to >= CURRENT_DATE)
+          ORDER BY ur.created_at DESC LIMIT 1
+        )`,
+                ownerEmail: sql<string | null>`(
+          SELECT p.email FROM ${unitRoles} ur
+          JOIN people p ON p.id = ur.person_id
+          WHERE ur.unit_id = "units"."id" AND ur.role_type = 'owner'
+            AND (ur.effective_to IS NULL OR ur.effective_to >= CURRENT_DATE)
+          ORDER BY ur.created_at DESC LIMIT 1
+        )`,
+                tenantName: sql<string | null>`(
+          SELECT p.full_name FROM ${unitRoles} ur
+          JOIN people p ON p.id = ur.person_id
+          WHERE ur.unit_id = "units"."id" AND ur.role_type = 'tenant'
+            AND (ur.effective_to IS NULL OR ur.effective_to >= CURRENT_DATE)
+          ORDER BY ur.created_at DESC LIMIT 1
+        )`,
+                tenantPersonId: sql<string | null>`(
+          SELECT ur.person_id::text FROM ${unitRoles} ur
+          WHERE ur.unit_id = "units"."id" AND ur.role_type = 'tenant'
+            AND (ur.effective_to IS NULL OR ur.effective_to >= CURRENT_DATE)
+          ORDER BY ur.created_at DESC LIMIT 1
+        )`,
+                tenantPhone: sql<string | null>`(
+          SELECT p.phone FROM ${unitRoles} ur
+          JOIN people p ON p.id = ur.person_id
+          WHERE ur.unit_id = "units"."id" AND ur.role_type = 'tenant'
+            AND (ur.effective_to IS NULL OR ur.effective_to >= CURRENT_DATE)
+          ORDER BY ur.created_at DESC LIMIT 1
+        )`,
+                tenantEmail: sql<string | null>`(
+          SELECT p.email FROM ${unitRoles} ur
+          JOIN people p ON p.id = ur.person_id
+          WHERE ur.unit_id = "units"."id" AND ur.role_type = 'tenant'
+            AND (ur.effective_to IS NULL OR ur.effective_to >= CURRENT_DATE)
+          ORDER BY ur.created_at DESC LIMIT 1
         )`
             })
             .from(units)
             .where(and(eq(units.buildingId, buildingId), eq(units.tenantId, tenantId)))
+            .orderBy(asc(units.floor), sql`length(${units.unitNumber})`, asc(units.unitNumber))
 
         return successResponse(items)
     } catch (e) {
