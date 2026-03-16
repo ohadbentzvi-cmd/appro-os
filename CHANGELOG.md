@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [0.1.7] - 2026-03-16
+
+### Changed
+- **Reminder modal order**: Recipient/unit details now appear before template selection, which appears before the message preview — making the cause-and-effect of template changes immediately visible.
+- **Building wizard Step 2 layout**: Excel download/upload buttons moved inline into the section header, eliminating the toolbar row and giving the units table significantly more vertical space.
+- **Step indicator spacing**: Reduced bottom margin on the step indicator for a tighter layout across all wizard steps.
+- **Wizard phone validation UX**: Invalid-phone and conflicting-phone error banners now only appear when the user clicks "Next", rather than on every keystroke. The Next button on Step 2 is always clickable; clicking it with errors triggers banners listing exactly which units/roles need fixing. Cells still turn red live for immediate visual feedback.
+
 ## [0.1.6] - 2026-03-16
 
 ### Added
