@@ -231,28 +231,6 @@ export default function ReminderApprovalModal({ isOpen, onClose, onSent, chargeI
                             {/* Ready state */}
                             {(phase === 'ready' || phase === 'sending') && !fetchError && (
                                 <>
-                                    {/* Template selector (only when more than one template is available) */}
-                                    {templates.length > 1 && (
-                                        <div>
-                                            <label className="text-xs text-gray-400 font-medium block mb-1.5">
-                                                תבנית הודעה
-                                            </label>
-                                            <select
-                                                value={selectedTemplateId ?? ''}
-                                                onChange={e => handleTemplateChange(e.target.value || undefined)}
-                                                disabled={isResolvingVars}
-                                                className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm font-medium text-gray-700 hover:border-apro-green focus:outline-none focus:ring-2 focus:ring-apro-green/30 transition-colors bg-white disabled:opacity-50"
-                                            >
-                                                <option value="">ברירת מחדל (ללא תבנית מפורשת)</option>
-                                                {templates.map(t => (
-                                                    <option key={t.id} value={t.id}>
-                                                        {t.name}{t.isDefault ? ' ★' : ''}
-                                                    </option>
-                                                ))}
-                                            </select>
-                                        </div>
-                                    )}
-
                                     {/* Blocked + duplicate warnings */}
                                     {(blockedItems.length > 0 || duplicateItems.length > 0) && (
                                         <div className="bg-red-50 border border-red-100 rounded-xl p-4 space-y-2">
@@ -306,6 +284,28 @@ export default function ReminderApprovalModal({ isOpen, onClose, onSent, chargeI
                                                 phoneOverride={phoneOverrides[currentCard.chargeId]}
                                                 onPhoneOverride={handlePhoneOverride}
                                             />
+
+                                            {/* Template selector (only when more than one template is available) */}
+                                            {templates.length > 1 && (
+                                                <div>
+                                                    <label className="text-xs text-gray-400 font-medium block mb-1.5">
+                                                        תבנית הודעה
+                                                    </label>
+                                                    <select
+                                                        value={selectedTemplateId ?? ''}
+                                                        onChange={e => handleTemplateChange(e.target.value || undefined)}
+                                                        disabled={isResolvingVars}
+                                                        className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm font-medium text-gray-700 hover:border-apro-green focus:outline-none focus:ring-2 focus:ring-apro-green/30 transition-colors bg-white disabled:opacity-50"
+                                                    >
+                                                        <option value="">ברירת מחדל (ללא תבנית מפורשת)</option>
+                                                        {templates.map(t => (
+                                                            <option key={t.id} value={t.id}>
+                                                                {t.name}{t.isDefault ? ' ★' : ''}
+                                                            </option>
+                                                        ))}
+                                                    </select>
+                                                </div>
+                                            )}
 
                                             {/* Message body preview */}
                                             {isResolvingVars ? (
