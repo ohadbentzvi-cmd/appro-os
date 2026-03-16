@@ -47,6 +47,16 @@ export default function OnboardingWizardModal({ isOpen, onClose }: OnboardingWiz
     const wizard = useWizardState();
     const [showExitConfirm, setShowExitConfirm] = useState(false);
     const [conflicts, setConflicts] = useState<PhoneConflict[]>([]);
+    const [showStep2Errors, setShowStep2Errors] = useState(false);
+
+    const handleNextClick = () => {
+        if (wizard.currentStep === 2 && !isStepValid(wizard)) {
+            setShowStep2Errors(true);
+            return;
+        }
+        setShowStep2Errors(false);
+        wizard.nextStep();
+    };
 
     if (!isOpen) return null;
 
@@ -213,7 +223,7 @@ export default function OnboardingWizardModal({ isOpen, onClose }: OnboardingWiz
 
                             <div className={`flex flex-col flex-1 min-h-0 w-full ${wizard.isSubmitting ? 'opacity-50 pointer-events-none' : ''}`}>
                                 {wizard.currentStep === 1 && <Step1BuildingDetails wizard={wizard} />}
-                                {wizard.currentStep === 2 && <Step2UnitsPeople wizard={wizard} />}
+                                {wizard.currentStep === 2 && <Step2UnitsPeople wizard={wizard} showErrors={showStep2Errors} />}
                                 {wizard.currentStep === 3 && <Step3Payments wizard={wizard} />}
                             </div>
                         </div>
@@ -231,9 +241,9 @@ export default function OnboardingWizardModal({ isOpen, onClose }: OnboardingWiz
 
                         {wizard.currentStep < 3 ? (
                             <button
-                                onClick={wizard.nextStep}
-                                disabled={!isStepValid(wizard) || wizard.isSubmitting}
-                                className={`px-10 py-3 font-bold rounded-xl transition-all shadow-sm ${isStepValid(wizard) && !wizard.isSubmitting ? 'bg-apro-navy text-white hover:bg-slate-800' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}
+                                onClick={handleNextClick}
+                                disabled={wizard.isSubmitting || (wizard.currentStep === 1 && !isStepValid(wizard))}
+                                className={`px-10 py-3 font-bold rounded-xl transition-all shadow-sm ${(!wizard.isSubmitting && (wizard.currentStep !== 1 || isStepValid(wizard))) ? 'bg-apro-navy text-white hover:bg-slate-800' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}
                             >
                                 הבא
                             </button>
