@@ -13,7 +13,7 @@ const steps = [
 
 export function StepIndicator({ currentStep }: StepIndicatorProps) {
     return (
-        <div className="flex items-center justify-center space-x-reverse space-x-2 md:space-x-4 mb-8">
+        <div className="flex items-center justify-center space-x-reverse space-x-2 md:space-x-4 mb-6">
             {steps.map((label, index) => {
                 const stepNum = index + 1;
                 const isActive = currentStep === stepNum;

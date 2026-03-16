@@ -34,7 +34,7 @@ function getConflictingPhones(units: WizardUnitUI[]): Set<string> {
     return conflicting;
 }
 
-export function Step2UnitsPeople({ wizard }: { wizard: ReturnType<typeof useWizardState> }) {
+export function Step2UnitsPeople({ wizard, showErrors }: { wizard: ReturnType<typeof useWizardState>; showErrors: boolean }) {
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [uploadError, setUploadError] = useState<string[] | null>(null);
     const [uploadSuccess, setUploadSuccess] = useState<string | null>(null);
@@ -42,6 +42,18 @@ export function Step2UnitsPeople({ wizard }: { wizard: ReturnType<typeof useWiza
 
     const conflictingPhones = getConflictingPhones(wizard.units);
     const hasDuplicatePhones = conflictingPhones.size > 0;
+
+    const invalidPhoneIssues = wizard.units.flatMap(unit => {
+        const issues: string[] = [];
+        const ownerPhone = unit.owner?.phone ?? '';
+        const tenantPhone = unit.tenant?.phone ?? '';
+        if (ownerPhone && !PHONE_REGEX.test(ownerPhone))
+            issues.push(`דירה ${unit.unit_number} — בעל נכס: "${ownerPhone}"`);
+        if (tenantPhone && !PHONE_REGEX.test(tenantPhone))
+            issues.push(`דירה ${unit.unit_number} — דייר: "${tenantPhone}"`);
+        return issues;
+    });
+    const hasInvalidPhones = invalidPhoneIssues.length > 0;
 
     const getCellWarning = (unitNumber: string, field: CellWarning['field']) =>
         cellWarnings.find(w => w.unit_number === unitNumber && w.field === field);
@@ -120,65 +132,88 @@ export function Step2UnitsPeople({ wizard }: { wizard: ReturnType<typeof useWiza
                     <h3 className="text-xl font-bold text-apro-navy">דירות ודיירים</h3>
                     <p className="text-sm text-gray-500 mt-1">הזן פרטי דיירים ובעלי נכס לכל דירה, או השתמש בתבנית האקסל.</p>
                 </div>
-                <div className="text-xs font-bold text-gray-400 bg-white border border-gray-200 px-3 py-1.5 rounded-full shrink-0">
-                    סה״כ: {wizard.units.length} דירות
+                <div className="flex items-center gap-2 shrink-0">
+                    <button
+                        onClick={handleDownloadTemplate}
+                        className="flex items-center gap-2 text-sm font-bold text-apro-navy bg-white border border-gray-200 px-3 py-1.5 rounded-xl hover:bg-gray-50 transition-colors shadow-sm"
+                    >
+                        <Download className="w-4 h-4" />
+                        הורד תבנית Excel
+                    </button>
+                    <button
+                        onClick={handleUploadClick}
+                        className="flex items-center gap-2 text-sm font-bold text-apro-navy bg-white border border-gray-200 px-3 py-1.5 rounded-xl hover:bg-gray-50 transition-colors shadow-sm"
+                    >
+                        <Upload className="w-4 h-4" />
+                        העלה קובץ מאוכלס
+                    </button>
+                    <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept=".xlsx,.xls"
+                        className="hidden"
+                        onChange={handleFileChange}
+                    />
+                    <div className="text-xs font-bold text-gray-400 bg-white border border-gray-200 px-3 py-1.5 rounded-full">
+                        סה״כ: {wizard.units.length} דירות
+                    </div>
                 </div>
             </div>
 
+            {/* Upload feedback banners */}
+            {uploadError && (
+                <div className="flex flex-col gap-1 p-3 bg-red-50 text-red-700 text-sm rounded-lg border border-red-100 animate-in fade-in slide-in-from-top-2 shrink-0">
+                    <div className="flex items-center gap-2 font-bold">
+                        <AlertCircle className="w-5 h-5 shrink-0" />
+                        <span>שגיאות בקובץ — לא בוצעו שינויים:</span>
+                    </div>
+                    <ul className="list-disc list-inside mr-6 space-y-0.5">
+                        {uploadError.map((err, i) => <li key={i}>{err}</li>)}
+                    </ul>
+                </div>
+            )}
+            {uploadSuccess && (
+                <div className="flex items-center gap-2 p-3 bg-green-50 text-green-700 text-sm font-bold rounded-lg border border-green-100 animate-in fade-in slide-in-from-top-2 shrink-0">
+                    <CheckCircle2 className="w-5 h-5 shrink-0" />
+                    <p>{uploadSuccess}</p>
+                </div>
+            )}
+
+            {/* Invalid phone format banner */}
+            {showErrors && hasInvalidPhones && (
+                <div className="p-3 bg-red-50 border border-red-200 text-red-700 rounded-xl text-sm shrink-0">
+                    <div className="flex items-center gap-2 font-bold mb-1.5">
+                        <AlertCircle className="w-4 h-4 shrink-0" />
+                        <span>{invalidPhoneIssues.length === 1 ? 'מספר טלפון לא תקין' : `${invalidPhoneIssues.length} מספרי טלפון לא תקינים`} — יש לתקן לפני המשך:</span>
+                    </div>
+                    <ul className="list-disc list-inside mr-6 space-y-0.5">
+                        {invalidPhoneIssues.map((issue, i) => <li key={i}>{issue}</li>)}
+                    </ul>
+                    <p className="text-xs text-red-500 mt-1.5 mr-1">פורמט נדרש: 05XXXXXXXX (נייד) או 0XXXXXXXX (קווי)</p>
+                </div>
+            )}
+
             {/* Conflicting phone banner */}
-            {hasDuplicatePhones && (
-                <div className="p-4 bg-red-50 border border-red-200 text-red-700 rounded-xl font-bold text-sm shrink-0 flex items-center gap-2">
-                    <AlertCircle className="w-5 h-5 shrink-0" />
-                    מספר הטלפון הזה משויך לאדם נוסף בטבלה. אם מדובר באותו אדם, וודא שהשם זהה בשתי הדירות.
+            {showErrors && hasDuplicatePhones && (
+                <div className="p-3 bg-red-50 border border-red-200 text-red-700 rounded-xl text-sm shrink-0">
+                    <div className="flex items-center gap-2 font-bold mb-1.5">
+                        <AlertCircle className="w-4 h-4 shrink-0" />
+                        <span>מספרי טלפון המשויכים לאנשים שונים — יש לתקן לפני המשך:</span>
+                    </div>
+                    <ul className="list-disc list-inside mr-6 space-y-0.5">
+                        {Array.from(conflictingPhones).map(phone => {
+                            const unitLabels = wizard.units
+                                .filter(u => u.owner?.phone === phone || u.tenant?.phone === phone)
+                                .map(u => `דירה ${u.unit_number}`)
+                                .join(', ');
+                            return <li key={phone}>{phone} — {unitLabels}</li>;
+                        })}
+                    </ul>
+                    <p className="text-xs text-red-500 mt-1.5 mr-1">אם מדובר באותו אדם, וודא שהשם זהה בשתי הדירות.</p>
                 </div>
             )}
 
             <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden flex flex-col">
-                {/* Toolbar */}
-                <div className="px-6 py-4 bg-gray-50/50 border-b border-gray-100 flex flex-col gap-3 shrink-0">
-                    <div className="flex items-center gap-3">
-                        <button
-                            onClick={handleDownloadTemplate}
-                            className="flex items-center gap-2 text-sm font-bold text-apro-navy bg-white border border-gray-200 px-4 py-2 rounded-xl hover:bg-gray-50 transition-colors shadow-sm"
-                        >
-                            <Download className="w-4 h-4" />
-                            הורד תבנית Excel
-                        </button>
-                        <button
-                            onClick={handleUploadClick}
-                            className="flex items-center gap-2 text-sm font-bold text-apro-navy bg-white border border-gray-200 px-4 py-2 rounded-xl hover:bg-gray-50 transition-colors shadow-sm"
-                        >
-                            <Upload className="w-4 h-4" />
-                            העלה קובץ מאוכלס
-                        </button>
-                        <input
-                            ref={fileInputRef}
-                            type="file"
-                            accept=".xlsx,.xls"
-                            className="hidden"
-                            onChange={handleFileChange}
-                        />
-                    </div>
-
-                    {uploadError && (
-                        <div className="flex flex-col gap-1 p-3 bg-red-50 text-red-700 text-sm rounded-lg border border-red-100 animate-in fade-in slide-in-from-top-2">
-                            <div className="flex items-center gap-2 font-bold">
-                                <AlertCircle className="w-5 h-5 shrink-0" />
-                                <span>שגיאות בקובץ — לא בוצעו שינויים:</span>
-                            </div>
-                            <ul className="list-disc list-inside mr-6 space-y-0.5">
-                                {uploadError.map((err, i) => <li key={i}>{err}</li>)}
-                            </ul>
-                        </div>
-                    )}
-
-                    {uploadSuccess && (
-                        <div className="flex items-center gap-2 p-3 bg-green-50 text-green-700 text-sm font-bold rounded-lg border border-green-100 animate-in fade-in slide-in-from-top-2">
-                            <CheckCircle2 className="w-5 h-5 shrink-0" />
-                            <p>{uploadSuccess}</p>
-                        </div>
-                    )}
-                </div>
 
                 {/* Table */}
                 <div className="overflow-auto flex-1 min-h-0">
